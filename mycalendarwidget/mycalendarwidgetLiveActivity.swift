@@ -129,7 +129,7 @@ struct mycalendarwidgetLiveActivity: Widget {
         case 7:  // 토요일
             return .blue
         default:
-            return .white
+            return .gray
         }
     }
     
@@ -152,8 +152,8 @@ struct mycalendarwidgetLiveActivity: Widget {
             .padding(.vertical)
             .activityBackgroundTint(Color(uiColor: UIColor { traitCollection in
                 traitCollection.userInterfaceStyle == .dark ?
-                    UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0) :  // 매우 진한 회색
-                    UIColor(red: 0.98, green: 0.98, blue: 0.98, alpha: 1.0)    // 매우 연한 회색
+                    UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 0.6) :  // 다크모드: 더 투명하게
+                    UIColor(red: 0.98, green: 0.98, blue: 0.98, alpha: 0.6)    // 라이트모드: 더 투명하게
             }))
             .activitySystemActionForegroundColor(Color(.label))
 
@@ -179,13 +179,23 @@ struct mycalendarwidgetLiveActivity: Widget {
                 Text("\(context.state.month)/\(context.state.day)")
                   .font(.title)
             } compactTrailing: {
-                Text("\(context.state.weekday)")
-                .font(.title)
-                    .foregroundColor(weekdayColor(context.state.weekdayInt))
+                Text(context.state.weekday)
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(weekdayColor(context.state.weekdayInt))
+                    )
             } minimal: {
                 Text(context.state.weekday)
-                .font(.title)
-                    .foregroundColor(weekdayColor(context.state.weekdayInt))
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(weekdayColor(context.state.weekdayInt))
+                    )
             }
             .widgetURL(URL(string: "http://www.apple.com"))
             .keylineTint(Color.white)
