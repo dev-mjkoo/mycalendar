@@ -12,21 +12,50 @@ import ActivityKit
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
+    @State private var isLiveActivityEnabled = false
     @State private var activity: Activity<CalendarActivityAttributes>? = nil
+    @State private var currentMonth = Date()
+    
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년 M월"
+        return formatter
+    }()
 
     var body: some View {
-        VStack {
-            if activity == nil {
-                Button("Start Live Activity") {
+        VStack(spacing: 0) {
+            Text(dateFormatter.string(from: currentMonth))
+                .font(.headline)
+                .padding(.vertical, 8)
+            
+            CalendarView(currentMonthBinding: $currentMonth)
+            
+            Spacer()
+            
+            Divider()
+            
+            Toggle(isOn: $isLiveActivityEnabled) {
+                Text("캘린더 Live Activity")
+                    .font(.headline)
+            }
+            .padding()
+            .onChange(of: isLiveActivityEnabled) { _, newValue in
+                if newValue {
                     startLiveActivity()
-                }
-            } else {
-                Button("Stop Live Activity") {
+                } else {
                     stopLiveActivity()
                 }
             }
         }
-        .padding()
+        .onAppear {
+            Task {
+                for activity in Activity<CalendarActivityAttributes>.activities {
+                    isLiveActivityEnabled = true
+                    self.activity = activity
+                    break
+                }
+            }
+        }
     }
 
     private func addItem() {
@@ -92,6 +121,7 @@ struct ContentView: View {
             print("App Debug - Live Activity started successfully")
         } catch {
             print(error.localizedDescription)
+            isLiveActivityEnabled = false  // 실패 시 토글 상태를 false로 되돌림
         }
     }
     
