@@ -38,6 +38,13 @@ class MonthDataCache {
         let firstWeekday = calendar.component(.weekday, from: start)
         let previousMonth = calendar.date(byAdding: .month, value: -1, to: start)!
         
+        // 한 달의 시작과 끝 날짜 계산
+        let startOfMonth = calendar.startOfDay(for: start)
+        let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
+        
+        // 한 달의 모든 이벤트를 한 번에 가져오기
+        let monthEvents = fetchEventsForMonth(start: startOfMonth, end: endOfMonth)
+        
         var days: [DayItem] = []
         
         // 이전 달 날짜들
@@ -47,8 +54,8 @@ class MonthDataCache {
                 var components = calendar.dateComponents([.year, .month], from: previousMonth)
                 components.day = day
                 if let date = calendar.date(from: components) {
-                    let events = fetchEvents(for: date)
-                    days.append(DayItem(date: date, isCurrentMonth: false, events: events))
+                    let dayEvents = filterEventsForDate(monthEvents, date: date)
+                    days.append(DayItem(date: date, isCurrentMonth: false, events: dayEvents))
                 }
             }
         }
@@ -58,61 +65,50 @@ class MonthDataCache {
             var components = calendar.dateComponents([.year, .month], from: start)
             components.day = day
             let date = calendar.date(from: components)!
-            let events = fetchEvents(for: date)
-            days.append(DayItem(date: date, isCurrentMonth: true, events: events))
+            let dayEvents = filterEventsForDate(monthEvents, date: date)
+            days.append(DayItem(date: date, isCurrentMonth: true, events: dayEvents))
         }
         
         // 다음 달 날짜들 (6주 채우기)
         while days.count % 7 != 0 {
             if let lastDate = days.last?.date {
                 let nextDate = calendar.date(byAdding: .day, value: 1, to: lastDate)!
-                let events = fetchEvents(for: nextDate)
-                days.append(DayItem(date: nextDate, isCurrentMonth: false, events: events))
+                let dayEvents = filterEventsForDate(monthEvents, date: nextDate)
+                days.append(DayItem(date: nextDate, isCurrentMonth: false, events: dayEvents))
             }
         }
         
         return MonthData(date: start, days: days)
     }
     
-    private func fetchEvents(for date: Date) -> [Event] {
-        let startOfDay = calendar.startOfDay(for: date)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        
-        print("\n=== 이벤트 검색 시작 ===")
-        print("검색 날짜: \(date)")
-        print("시작 시간: \(startOfDay)")
-        print("종료 시간: \(endOfDay)")
-        
+    private func fetchEventsForMonth(start: Date, end: Date) -> [Event] {
         do {
-            // 먼저 모든 이벤트를 가져와서 로그
-            let allEvents = try modelContext.fetch(FetchDescriptor<Event>())
-            print("\nSwiftData에 저장된 모든 이벤트:")
-            allEvents.forEach { event in
-                print("- \(event.title): \(event.startDate) ~ \(event.endDate)")
-            }
-            
-            // 메모리에서 필터링
-            let filteredEvents = allEvents.filter { event in
-                let eventStart = calendar.startOfDay(for: event.startDate)
-                let eventEnd = calendar.startOfDay(for: event.endDate)
-                let searchDate = calendar.startOfDay(for: date)
-                
-                let isInRange = eventStart == searchDate || eventEnd == searchDate ||
-                               (eventStart < searchDate && eventEnd > searchDate) ||
-                               (event.isAllDay && eventStart <= searchDate && eventEnd >= searchDate)
-                
-                if isInRange {
-                    print("이벤트 매칭: \(event.title) - \(eventStart) ~ \(eventEnd)")
+            let fetchDescriptor = FetchDescriptor<Event>(
+                predicate: #Predicate<Event> { event in
+                    (event.startDate >= start && event.startDate <= end) ||
+                    (event.endDate >= start && event.endDate <= end) ||
+                    (event.startDate <= start && event.endDate >= end)
                 }
-                
-                return isInRange
-            }
-            
-            print("\n필터링된 이벤트 수: \(filteredEvents.count)")
-            return filteredEvents
+            )
+            return try modelContext.fetch(fetchDescriptor)
         } catch {
             print("이벤트 가져오기 실패: \(error.localizedDescription)")
             return []
+        }
+    }
+    
+    private func filterEventsForDate(_ events: [Event], date: Date) -> [Event] {
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        return events.filter { event in
+            let eventStart = calendar.startOfDay(for: event.startDate)
+            let eventEnd = calendar.startOfDay(for: event.endDate)
+            let searchDate = calendar.startOfDay(for: date)
+            
+            return eventStart == searchDate || eventEnd == searchDate ||
+                   (eventStart < searchDate && eventEnd > searchDate) ||
+                   (event.isAllDay && eventStart <= searchDate && eventEnd >= searchDate)
         }
     }
     
