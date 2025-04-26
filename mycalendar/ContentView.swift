@@ -207,14 +207,10 @@ struct ContentView: View {
             let fetchDescriptor = FetchDescriptor<Event>()
             let existingEvents = try modelContext.fetch(fetchDescriptor)
             
-            existingEvents
-                .filter { event in
-                    let eventComponents = calendar.dateComponents([.year, .month], from: event.startDate)
-                    let currentComponents = calendar.dateComponents([.year, .month], from: currentMonth)
-                    return eventComponents.year == currentComponents.year && 
-                           eventComponents.month == currentComponents.month
-                }
-                .forEach { modelContext.delete($0) }
+            // 기존 이벤트 삭제
+            for event in existingEvents {
+                modelContext.delete(event)
+            }
             
             // 새로운 이벤트 추가
             for ekEvent in events {
@@ -252,14 +248,10 @@ struct ContentView: View {
             let fetchDescriptor = FetchDescriptor<Event>()
             let existingEvents = try modelContext.fetch(fetchDescriptor)
             
-            existingEvents
-                .filter { event in
-                    let eventComponents = calendar.dateComponents([.year, .month], from: event.startDate)
-                    let currentComponents = calendar.dateComponents([.year, .month], from: currentMonth)
-                    return eventComponents.year == currentComponents.year && 
-                           eventComponents.month == currentComponents.month
-                }
-                .forEach { modelContext.delete($0) }
+            // 기존 이벤트 삭제
+            for event in existingEvents {
+                modelContext.delete(event)
+            }
             
             // 새로운 이벤트 추가
             for ekEvent in events {

@@ -22,7 +22,7 @@ final class Event {
     var alarms: [String]?          // 알림 설정
     
     init(ekEvent: EKEvent) {
-        self.id = ekEvent.eventIdentifier
+        self.id = UUID().uuidString  // UUID를 사용하여 고유한 ID 생성
         self.title = ekEvent.title
         self.startDate = ekEvent.startDate
         self.endDate = ekEvent.endDate
@@ -53,7 +53,7 @@ final class Event {
     }
     
     init(id: String, title: String, startDate: Date, endDate: Date) {
-        self.id = id
+        self.id = UUID().uuidString  // UUID를 사용하여 고유한 ID 생성
         self.title = title
         self.startDate = startDate
         self.endDate = endDate
