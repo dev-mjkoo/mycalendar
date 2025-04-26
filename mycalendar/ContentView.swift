@@ -19,8 +19,6 @@ struct ContentView: View {
     @State private var currentMonth = Date()
     @State private var syncedMonths: Set<String> = []  // 이미 동기화된 달을 추적
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selectedDate: Date = Date()
-    @Query private var events: [Event]
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -34,13 +32,6 @@ struct ContentView: View {
         return formatter
     }()
 
-    var selectedDateEvents: [Event] {
-        let calendar = Calendar.current
-        return events.filter { event in
-            calendar.isDate(event.startDate, inSameDayAs: selectedDate)
-        }.sorted { $0.startDate < $1.startDate }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             Text(dateFormatter.string(from: currentMonth))
@@ -52,37 +43,7 @@ struct ContentView: View {
                     onMonthChange()
                 }
             
-            if !selectedDateEvents.isEmpty {
-                List(selectedDateEvents, id: \.id) { event in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(event.title)
-                            .font(.headline)
-                        
-                        HStack {
-                            if event.isAllDay {
-                                Text("종일")
-                                    .foregroundColor(.gray)
-                            } else {
-                                Text(formatEventTime(event))
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            if let location = event.location, !location.isEmpty {
-                                Text("📍 \(location)")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .font(.subheadline)
-                    }
-                    .padding(.vertical, 4)
-                }
-            } else {
-                VStack {
-                    Text("일정이 없습니다")
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            Spacer()
             
             Divider()
             
@@ -108,6 +69,8 @@ struct ContentView: View {
                 .onChange(of: isCalendarSyncEnabled) { _, newValue in
                     if newValue {
                         requestCalendarAccess()
+                    } else {
+                        // 동기화 중지 로직
                     }
                 }
             }
@@ -123,6 +86,7 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active && isCalendarSyncEnabled {
+                // 앱이 포그라운드로 돌아올 때 현재 보이는 달만 동기화
                 syncCurrentMonth()
             }
         }
@@ -316,13 +280,6 @@ struct ContentView: View {
         if isCalendarSyncEnabled {
             syncWithCalendar()
         }
-    }
-
-    private func formatEventTime(_ event: Event) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "a h:mm"
-        formatter.locale = Locale(identifier: "ko_KR")
-        return "\(formatter.string(from: event.startDate)) - \(formatter.string(from: event.endDate))"
     }
 }
 
