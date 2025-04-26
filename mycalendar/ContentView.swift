@@ -270,6 +270,9 @@ struct ContentView: View {
             try modelContext.save()
             syncedMonths.insert(monthKey)
             print("\(monthKey) 달의 \(events.count)개 이벤트를 동기화했습니다.")
+            
+            // 캘린더 뷰의 캐시를 새로고침
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshCalendarCache"), object: nil)
         } catch {
             print("캘린더 동기화 중 오류 발생: \(error.localizedDescription)")
             isCalendarSyncEnabled = false

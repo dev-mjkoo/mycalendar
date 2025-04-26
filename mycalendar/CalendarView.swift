@@ -55,6 +55,25 @@ struct CalendarView: View {
             }
             
             monthCache = MonthDataCache(modelContext: modelContext)
+            
+            // 현재 달의 데이터를 미리 로드
+            if let cache = monthCache {
+                _ = cache.monthData(for: current)
+                print("현재 달의 데이터를 미리 로드했습니다.")
+            }
+            
+            // 캐시 새로고침 알림을 구독
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("RefreshCalendarCache"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                print("캘린더 캐시를 새로고침합니다.")
+                monthCache = MonthDataCache(modelContext: modelContext)
+                if let cache = monthCache {
+                    _ = cache.monthData(for: current)
+                }
+            }
         }
     }
     
