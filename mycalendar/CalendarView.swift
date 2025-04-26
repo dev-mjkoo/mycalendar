@@ -42,7 +42,7 @@ struct CalendarView: View {
                 currentMonthBinding = months[currentIndex]
             }
         }
-    }
+     }
     
     private func appendMonths() {
         var newMonths: [Date] = []

@@ -67,3 +67,9 @@ struct CalendarViewPager: View {
     }
 }
 #endif
+
+
+
+#Preview {
+    CalendarView(currentMonthBinding: .constant(Date()))
+}
