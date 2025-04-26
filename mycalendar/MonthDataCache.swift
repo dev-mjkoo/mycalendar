@@ -78,28 +78,38 @@ class MonthDataCache {
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
         
-        print("날짜: \(startOfDay) ~ \(endOfDay)의 이벤트를 가져옵니다.")
-        
-        let descriptor = FetchDescriptor<Event>(
-            predicate: #Predicate<Event> { event in
-                // 시작 시간이 해당 날짜에 있거나
-                (event.startDate >= startOfDay && event.startDate < endOfDay) ||
-                // 종료 시간이 해당 날짜에 있거나
-                (event.endDate > startOfDay && event.endDate <= endOfDay) ||
-                // 시작과 종료 사이에 해당 날짜가 있거나
-                (event.startDate < startOfDay && event.endDate > endOfDay) ||
-                // 종일 이벤트인 경우
-                (event.isAllDay && event.startDate <= endOfDay && event.endDate >= startOfDay)
-            }
-        )
+        print("\n=== 이벤트 검색 시작 ===")
+        print("검색 날짜: \(date)")
+        print("시작 시간: \(startOfDay)")
+        print("종료 시간: \(endOfDay)")
         
         do {
-            let events = try modelContext.fetch(descriptor)
-            print("가져온 이벤트 수: \(events.count)")
-            events.forEach { event in
-                print("- 이벤트: \(event.title), 시작: \(event.startDate), 종료: \(event.endDate)")
+            // 먼저 모든 이벤트를 가져와서 로그
+            let allEvents = try modelContext.fetch(FetchDescriptor<Event>())
+            print("\nSwiftData에 저장된 모든 이벤트:")
+            allEvents.forEach { event in
+                print("- \(event.title): \(event.startDate) ~ \(event.endDate)")
             }
-            return events
+            
+            // 메모리에서 필터링
+            let filteredEvents = allEvents.filter { event in
+                let eventStart = calendar.startOfDay(for: event.startDate)
+                let eventEnd = calendar.startOfDay(for: event.endDate)
+                let searchDate = calendar.startOfDay(for: date)
+                
+                let isInRange = eventStart == searchDate || eventEnd == searchDate ||
+                               (eventStart < searchDate && eventEnd > searchDate) ||
+                               (event.isAllDay && eventStart <= searchDate && eventEnd >= searchDate)
+                
+                if isInRange {
+                    print("이벤트 매칭: \(event.title) - \(eventStart) ~ \(eventEnd)")
+                }
+                
+                return isInRange
+            }
+            
+            print("\n필터링된 이벤트 수: \(filteredEvents.count)")
+            return filteredEvents
         } catch {
             print("이벤트 가져오기 실패: \(error.localizedDescription)")
             return []

@@ -204,7 +204,11 @@ struct ContentView: View {
             let events = store.events(matching: predicate)
             
             // 현재 달의 이벤트만 필터링하여 삭제
-            let fetchDescriptor = FetchDescriptor<Event>()
+            let fetchDescriptor = FetchDescriptor<Event>(
+                predicate: #Predicate<Event> { event in
+                    event.startDate >= startOfMonth && event.startDate <= endOfMonth
+                }
+            )
             let existingEvents = try modelContext.fetch(fetchDescriptor)
             
             // 기존 이벤트 삭제
@@ -245,7 +249,11 @@ struct ContentView: View {
             let events = store.events(matching: predicate)
             
             // 현재 달의 이벤트만 필터링하여 삭제
-            let fetchDescriptor = FetchDescriptor<Event>()
+            let fetchDescriptor = FetchDescriptor<Event>(
+                predicate: #Predicate<Event> { event in
+                    event.startDate >= startOfMonth && event.startDate <= endOfMonth
+                }
+            )
             let existingEvents = try modelContext.fetch(fetchDescriptor)
             
             // 기존 이벤트 삭제
