@@ -113,8 +113,11 @@ class MonthDataCache {
     }
     
     private func prefetchMonths(around date: Date, range: Int) {
+        // 선택된 월의 시작일을 기준으로 계산
+        let startOfSelectedMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
+        
         for offset in -range...range {
-            if let prefetchDate = calendar.date(byAdding: .month, value: offset, to: date) {
+            if let prefetchDate = calendar.date(byAdding: .month, value: offset, to: startOfSelectedMonth) {
                 let key = monthKey(for: prefetchDate)
                 if cache[key] == nil {
                     let monthData = createMonthData(for: prefetchDate)
