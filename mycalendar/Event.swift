@@ -4,7 +4,7 @@ import EventKit
 
 @Model
 final class Event {
-    @Attribute(.unique) var id: String  // EKEvent의 eventIdentifier를 unique key로 설정
+    @Attribute(.unique) var id: String  // EKEvent의 eventIdentifier를 저장
     var title: String              // 이벤트 제목
     var startDate: Date            // 시작 시간
     var endDate: Date              // 종료 시간
@@ -20,9 +20,26 @@ final class Event {
     var timeZone: String?          // 타임존
     var recurrenceRulesString: String? // 반복 규칙을 JSON 문자열로 저장
     var alarmsString: String?      // 알림 설정을 JSON 문자열로 저장
+    var isDetachedOccurrence: Bool // detached occurrence 여부
+    var seriesIdentifier: String?  // 반복 이벤트 시리즈의 식별자
     
     init(ekEvent: EKEvent) {
-        self.id = UUID().uuidString  // UUID를 사용하여 고유한 ID 생성
+        // eventIdentifier를 ID로 사용
+        self.id = ekEvent.eventIdentifier
+        
+        // 반복 이벤트 시리즈 식별자 설정
+        if let recurrenceRules = ekEvent.recurrenceRules, !recurrenceRules.isEmpty {
+            // 반복 이벤트의 경우, 시리즈 식별자를 생성
+            // 시작일과 반복 규칙을 기반으로 고유한 식별자 생성
+            let seriesKey = "\(ekEvent.startDate.timeIntervalSince1970)_\(recurrenceRules.first?.description ?? "")"
+            self.seriesIdentifier = seriesKey
+            // detached occurrence 여부는 나중에 동기화 과정에서 판단
+            self.isDetachedOccurrence = false
+        } else {
+            self.seriesIdentifier = nil
+            self.isDetachedOccurrence = false
+        }
+        
         self.title = ekEvent.title
         self.startDate = ekEvent.startDate
         self.endDate = ekEvent.endDate
@@ -55,7 +72,7 @@ final class Event {
     }
     
     init(id: String, title: String, startDate: Date, endDate: Date) {
-        self.id = UUID().uuidString  // UUID를 사용하여 고유한 ID 생성
+        self.id = id
         self.title = title
         self.startDate = startDate
         self.endDate = endDate
@@ -63,6 +80,7 @@ final class Event {
         self.calendar = ""
         self.calendarId = ""
         self.availability = 0
+        self.isDetachedOccurrence = false
     }
     
     // 반복 규칙을 배열로 가져오는 계산 속성
