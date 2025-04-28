@@ -18,8 +18,8 @@ final class Event {
     var creationDate: Date?        // 생성일
     var lastModifiedDate: Date?    // 최종 수정일
     var timeZone: String?          // 타임존
-    var recurrenceRules: [String]? // 반복 규칙
-    var alarms: [String]?          // 알림 설정
+    var recurrenceRulesString: String? // 반복 규칙을 JSON 문자열로 저장
+    var alarmsString: String?      // 알림 설정을 JSON 문자열로 저장
     
     init(ekEvent: EKEvent) {
         self.id = UUID().uuidString  // UUID를 사용하여 고유한 ID 생성
@@ -39,16 +39,18 @@ final class Event {
         
         // 반복 규칙 변환
         if let recurrenceRules = ekEvent.recurrenceRules {
-            self.recurrenceRules = recurrenceRules.map { rule in
-                return rule.description // EKRecurrenceRule을 문자열로 저장
+            let rulesArray = recurrenceRules.map { rule in
+                return rule.description
             }
+            self.recurrenceRulesString = try? JSONEncoder().encode(rulesArray).base64EncodedString()
         }
         
         // 알림 설정 변환
         if let alarms = ekEvent.alarms {
-            self.alarms = alarms.map { alarm in
-                return "\(alarm.absoluteDate?.description ?? "")|\(alarm.relativeOffset)" // EKAlarm 정보를 문자열로 저장
+            let alarmsArray = alarms.map { alarm in
+                return "\(alarm.absoluteDate?.description ?? "")|\(alarm.relativeOffset)"
             }
+            self.alarmsString = try? JSONEncoder().encode(alarmsArray).base64EncodedString()
         }
     }
     
@@ -61,5 +63,25 @@ final class Event {
         self.calendar = ""
         self.calendarId = ""
         self.availability = 0
+    }
+    
+    // 반복 규칙을 배열로 가져오는 계산 속성
+    var recurrenceRules: [String]? {
+        guard let rulesString = recurrenceRulesString,
+              let data = Data(base64Encoded: rulesString),
+              let rules = try? JSONDecoder().decode([String].self, from: data) else {
+            return nil
+        }
+        return rules
+    }
+    
+    // 알림 설정을 배열로 가져오는 계산 속성
+    var alarms: [String]? {
+        guard let alarmsString = alarmsString,
+              let data = Data(base64Encoded: alarmsString),
+              let alarms = try? JSONDecoder().decode([String].self, from: data) else {
+            return nil
+        }
+        return alarms
     }
 } 
