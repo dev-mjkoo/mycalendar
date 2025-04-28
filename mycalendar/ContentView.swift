@@ -245,14 +245,22 @@ struct ContentView: View {
         let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))!
         let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
         
+        // 1일이 속한 주의 시작일 계산 (이전 달 날짜 포함)
+        let firstWeekday = calendar.component(.weekday, from: startOfMonth)
+        let firstWeekStart = calendar.date(byAdding: .day, value: -(firstWeekday - 1), to: startOfMonth)!
+        
+        // 마지막 날이 속한 주의 마지막 날 계산 (다음 달 날짜 포함)
+        let lastWeekday = calendar.component(.weekday, from: endOfMonth)
+        let lastWeekEnd = calendar.date(byAdding: .day, value: (7 - lastWeekday), to: endOfMonth)!
+        
         do {
-            let predicate = store.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
+            let predicate = store.predicateForEvents(withStart: firstWeekStart, end: lastWeekEnd, calendars: nil)
             let events = store.events(matching: predicate)
             
             // 현재 달의 이벤트만 필터링하여 삭제
             let fetchDescriptor = FetchDescriptor<Event>(
                 predicate: #Predicate<Event> { event in
-                    event.startDate >= startOfMonth && event.startDate <= endOfMonth
+                    event.startDate >= firstWeekStart && event.startDate <= lastWeekEnd
                 }
             )
             let existingEvents = try modelContext.fetch(fetchDescriptor)
