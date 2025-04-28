@@ -86,8 +86,9 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active && isCalendarSyncEnabled {
-                // 앱이 포그라운드로 돌아올 때 현재 보이는 달만 동기화
-                syncCurrentMonth()
+                // 앱이 포그라운드로 돌아올 때 모든 캐시를 초기화하고 현재 월만 동기화
+                syncedMonths.removeAll()
+                syncWithCalendar()
             }
         }
     }
