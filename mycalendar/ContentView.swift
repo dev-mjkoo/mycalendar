@@ -40,7 +40,11 @@ struct ContentView: View {
     @State private var syncedMonths: Set<String> = []  // 이미 동기화된 달을 추적
     @State private var cachedMonths: Set<String> = []  // 캐시된 달을 추적
     @State private var scrollDirection: ScrollDirection = .none  // 스크롤 방향 추적
+    @State private var visibleMonths: Set<String> = []  // 현재 보이는 월들
     @Environment(\.scenePhase) private var scenePhase
+    
+    // 캐시된 월의 최대 개수 제한
+    private let maxCachedMonths = 12  // 1년치 데이터만 캐시
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -283,6 +287,11 @@ struct ContentView: View {
         let monthKey = monthFormatter.string(from: month)
         guard !cachedMonths.contains(monthKey) else { return }
         
+        // 캐시된 월이 최대 개수를 초과하면 오래된 데이터 정리
+        if cachedMonths.count >= maxCachedMonths {
+            cleanupOldCache()
+        }
+        
         let store = EKEventStore()
         let calendar = Calendar.current
         
@@ -324,13 +333,52 @@ struct ContentView: View {
             try modelContext.save()
             cachedMonths.insert(monthKey)
             print("\(monthKey) 달의 \(events.count)개 이벤트를 로드했습니다.")
+            
+            // 캘린더 뷰 새로고침
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshCalendarCache"), object: nil)
         } catch {
             print("캘린더 데이터 로드 중 오류 발생: \(error.localizedDescription)")
+            // 오류 발생 시 캐시에서 해당 월 제거
+            cachedMonths.remove(monthKey)
+        }
+    }
+    
+    private func cleanupOldCache() {
+        // 현재 보이는 월을 제외한 오래된 캐시 정리
+        let monthsToKeep = visibleMonths
+        let monthsToRemove = cachedMonths.subtracting(monthsToKeep)
+        
+        for monthKey in monthsToRemove {
+            // 해당 월의 이벤트 삭제
+            let calendar = Calendar.current
+            if let date = monthFormatter.date(from: monthKey) {
+                let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
+                let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
+                
+                do {
+                    let fetchDescriptor = FetchDescriptor<Event>(
+                        predicate: #Predicate<Event> { event in
+                            event.startDate >= startOfMonth && event.startDate <= endOfMonth
+                        }
+                    )
+                    let events = try modelContext.fetch(fetchDescriptor)
+                    for event in events {
+                        modelContext.delete(event)
+                    }
+                    try modelContext.save()
+                } catch {
+                    print("캐시 정리 중 오류 발생: \(error.localizedDescription)")
+                }
+            }
+            cachedMonths.remove(monthKey)
         }
     }
     
     private func onMonthChange() {
         if isCalendarSyncEnabled {
+            // 현재 보이는 월 업데이트
+            visibleMonths = [monthFormatter.string(from: currentMonth)]
+            
             // 스크롤 방향 감지
             let newScrollDirection: ScrollDirection
             if let lastMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth),
