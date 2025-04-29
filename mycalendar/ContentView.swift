@@ -224,6 +224,7 @@ struct ContentView: View {
     }
     
     private func syncCurrentMonth() {
+        print("🔄 현재 월 동기화 시작: \(monthFormatter.string(from: currentMonth))")
         let store = EKEventStore()
         let calendar = Calendar.current
         
@@ -234,6 +235,7 @@ struct ContentView: View {
         do {
             let predicate = store.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
             let events = store.events(matching: predicate)
+            print("📅 이벤트 가져오기 완료: \(events.count)개")
             
             // 현재 달의 이벤트만 필터링하여 삭제
             let fetchDescriptor = FetchDescriptor<Event>(
@@ -242,6 +244,7 @@ struct ContentView: View {
                 }
             )
             let existingEvents = try modelContext.fetch(fetchDescriptor)
+            print("🗑️ 기존 이벤트 삭제: \(existingEvents.count)개")
             
             // 기존 이벤트 삭제
             for event in existingEvents {
@@ -255,15 +258,16 @@ struct ContentView: View {
             }
             
             try modelContext.save()
-            print("\(monthFormatter.string(from: currentMonth)) 달의 \(events.count)개 이벤트를 동기화했습니다.")
+            print("✅ \(monthFormatter.string(from: currentMonth)) 달의 \(events.count)개 이벤트 동기화 완료")
         } catch {
-            print("캘린더 동기화 중 오류 발생: \(error.localizedDescription)")
+            print("❌ 캘린더 동기화 중 오류 발생: \(error.localizedDescription)")
             isCalendarSyncEnabled = false
         }
     }
     
     private func syncWithCalendar() {
         let monthKey = monthFormatter.string(from: currentMonth)
+        print("🔄 캘린더 동기화 시작: \(monthKey)")
         
         // 현재 월의 데이터만 먼저 로드
         loadMonthData(for: currentMonth)
@@ -272,10 +276,12 @@ struct ContentView: View {
         switch scrollDirection {
         case .forward:
             if let nextMonth = Calendar.current.date(byAdding: .month, value: 1, to: currentMonth) {
+                print("📥 다음 달 프리페칭: \(monthFormatter.string(from: nextMonth))")
                 loadMonthData(for: nextMonth)
             }
         case .backward:
             if let prevMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) {
+                print("📥 이전 달 프리페칭: \(monthFormatter.string(from: prevMonth))")
                 loadMonthData(for: prevMonth)
             }
         case .none:
@@ -285,10 +291,14 @@ struct ContentView: View {
     
     private func loadMonthData(for month: Date) {
         let monthKey = monthFormatter.string(from: month)
-        guard !cachedMonths.contains(monthKey) else { return }
+        guard !cachedMonths.contains(monthKey) else {
+            print("📦 이미 캐시된 월: \(monthKey)")
+            return
+        }
         
         // 캐시된 월이 최대 개수를 초과하면 오래된 데이터 정리
         if cachedMonths.count >= maxCachedMonths {
+            print("🧹 캐시 정리 필요: \(cachedMonths.count)개")
             cleanupOldCache()
         }
         
@@ -310,6 +320,7 @@ struct ContentView: View {
         do {
             let predicate = store.predicateForEvents(withStart: firstWeekStart, end: lastWeekEnd, calendars: nil)
             let events = store.events(matching: predicate)
+            print("📅 이벤트 가져오기 완료: \(events.count)개")
             
             // 해당 기간의 이벤트만 필터링하여 삭제
             let fetchDescriptor = FetchDescriptor<Event>(
@@ -318,6 +329,7 @@ struct ContentView: View {
                 }
             )
             let existingEvents = try modelContext.fetch(fetchDescriptor)
+            print("🗑️ 기존 이벤트 삭제: \(existingEvents.count)개")
             
             // 기존 이벤트 삭제
             for event in existingEvents {
@@ -332,23 +344,25 @@ struct ContentView: View {
             
             try modelContext.save()
             cachedMonths.insert(monthKey)
-            print("\(monthKey) 달의 \(events.count)개 이벤트를 로드했습니다.")
+            print("✅ \(monthKey) 달의 \(events.count)개 이벤트 로드 완료")
             
             // 캘린더 뷰 새로고침
             NotificationCenter.default.post(name: NSNotification.Name("RefreshCalendarCache"), object: nil)
         } catch {
-            print("캘린더 데이터 로드 중 오류 발생: \(error.localizedDescription)")
+            print("❌ 캘린더 데이터 로드 중 오류 발생: \(error.localizedDescription)")
             // 오류 발생 시 캐시에서 해당 월 제거
             cachedMonths.remove(monthKey)
         }
     }
     
     private func cleanupOldCache() {
+        print("🧹 오래된 캐시 정리 시작")
         // 현재 보이는 월을 제외한 오래된 캐시 정리
         let monthsToKeep = visibleMonths
         let monthsToRemove = cachedMonths.subtracting(monthsToKeep)
         
         for monthKey in monthsToRemove {
+            print("🗑️ 캐시 정리: \(monthKey)")
             // 해당 월의 이벤트 삭제
             let calendar = Calendar.current
             if let date = monthFormatter.date(from: monthKey) {
@@ -366,12 +380,14 @@ struct ContentView: View {
                         modelContext.delete(event)
                     }
                     try modelContext.save()
+                    print("✅ \(monthKey) 캐시 정리 완료")
                 } catch {
-                    print("캐시 정리 중 오류 발생: \(error.localizedDescription)")
+                    print("❌ 캐시 정리 중 오류 발생: \(error.localizedDescription)")
                 }
             }
             cachedMonths.remove(monthKey)
         }
+        print("✅ 캐시 정리 완료")
     }
     
     private func onMonthChange() {

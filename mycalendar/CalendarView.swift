@@ -15,6 +15,7 @@ struct CalendarView: View {
     var body: some View {
         Group {
             if let monthCache = monthCache {
+//                print("📅 달력 뷰 초기화 완료 - 현재 인덱스: \(currentIndex)")
                 CalendarViewPager(
                     currentIndex: $currentIndex,
                     months: months,
@@ -26,9 +27,12 @@ struct CalendarView: View {
                     }
                 )
                 .onChange(of: currentIndex) { newIndex in
+                    print("🔄 달력 페이지 변경: \(newIndex)")
                     if newIndex == months.count - 3 {
+                        print("📅 다음 달 추가")
                         appendMonths()
                     } else if newIndex == 2 {
+                        print("📅 이전 달 추가")
                         prependMonths()
                     }
                     if months.indices.contains(newIndex) {
@@ -36,10 +40,12 @@ struct CalendarView: View {
                     }
                 }
             } else {
+//                print("⏳ 달력 데이터 로딩 중...")
                 ProgressView()
             }
         }
         .onAppear {
+            print("🚀 달력 뷰가 나타남")
             requestCalendarAccess()
             let current = Date()
             var initialMonths: [Date] = []
@@ -50,16 +56,18 @@ struct CalendarView: View {
                 }
             }
             months = initialMonths
+            print("📅 초기 달 설정: \(months.count)개")
             if months.indices.contains(currentIndex) {
                 currentMonthBinding = months[currentIndex]
             }
             
             monthCache = MonthDataCache(modelContext: modelContext)
+            print("💾 월별 데이터 캐시 생성")
             
             // 현재 달의 데이터를 미리 로드
             if let cache = monthCache {
                 _ = cache.monthData(for: current)
-                print("현재 달의 데이터를 미리 로드했습니다.")
+                print("📅 현재 달 데이터 프리로드 완료")
             }
             
             // 캐시 새로고침 알림을 구독
@@ -68,10 +76,11 @@ struct CalendarView: View {
                 object: nil,
                 queue: .main
             ) { _ in
-                print("캘린더 캐시를 새로고침합니다.")
+                print("🔄 캘린더 캐시 새로고침 시작")
                 monthCache = MonthDataCache(modelContext: modelContext)
                 if let cache = monthCache {
                     _ = cache.monthData(for: current)
+                    print("✅ 캘린더 캐시 새로고침 완료")
                 }
             }
         }
