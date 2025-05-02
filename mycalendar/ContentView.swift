@@ -222,49 +222,7 @@ struct ContentView: View {
             break
         }
     }
-    
-    private func syncCurrentMonth() {
-        print("🔄 현재 월 동기화 시작: \(monthFormatter.string(from: currentMonth))")
-        let store = EKEventStore()
-        let calendar = Calendar.current
         
-        // 현재 달의 시작일과 종료일 계산
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))!
-        let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
-        
-        do {
-            let predicate = store.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
-            let events = store.events(matching: predicate)
-            print("📅 이벤트 가져오기 완료: \(events.count)개")
-            
-            // 현재 달의 이벤트만 필터링하여 삭제
-            let fetchDescriptor = FetchDescriptor<Event>(
-                predicate: #Predicate<Event> { event in
-                    event.startDate >= startOfMonth && event.startDate <= endOfMonth
-                }
-            )
-            let existingEvents = try modelContext.fetch(fetchDescriptor)
-            print("🗑️ 기존 이벤트 삭제: \(existingEvents.count)개")
-            
-            // 기존 이벤트 삭제
-            for event in existingEvents {
-                modelContext.delete(event)
-            }
-            
-            // 새로운 이벤트 추가
-            for ekEvent in events {
-                let event = Event(ekEvent: ekEvent)
-                modelContext.insert(event)
-            }
-            
-            try modelContext.save()
-            print("✅ \(monthFormatter.string(from: currentMonth)) 달의 \(events.count)개 이벤트 동기화 완료")
-        } catch {
-            print("❌ 캘린더 동기화 중 오류 발생: \(error.localizedDescription)")
-            isCalendarSyncEnabled = false
-        }
-    }
-    
     private func syncWithCalendar() {
         let monthKey = monthFormatter.string(from: currentMonth)
         print("🔄 캘린더 동기화 시작: \(monthKey)")
