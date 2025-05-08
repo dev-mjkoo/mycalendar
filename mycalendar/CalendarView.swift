@@ -11,11 +11,17 @@ struct CalendarView: View {
     private let calendar = Calendar.current
     @State private var monthCache: MonthDataCache?
     private let eventStore = EKEventStore()
+    @State private var isAppendingMonths = false
+    @State private var isPrependingMonths = false
+    
+    // 버퍼 설정
+    private let minPageCount = 5
+    private let maxPageCount = 15
+    private let bufferThreshold = 3
     
     var body: some View {
         Group {
             if let monthCache = monthCache {
-//                print("📅 달력 뷰 초기화 완료 - 현재 인덱스: \(currentIndex)")
                 CalendarViewPager(
                     currentIndex: $currentIndex,
                     months: months,
@@ -27,62 +33,132 @@ struct CalendarView: View {
                     }
                 )
                 .onChange(of: currentIndex) { newIndex in
-                    print("🔄 달력 페이지 변경: \(newIndex)")
-                    if newIndex == months.count - 3 {
-                        print("📅 다음 달 추가")
-                        appendMonths()
-                    } else if newIndex == 2 {
-                        print("📅 이전 달 추가")
-                        prependMonths()
-                    }
-                    if months.indices.contains(newIndex) {
-                        currentMonthBinding = months[newIndex]
-                    }
+                    handleIndexChange(newIndex)
                 }
             } else {
-//                print("⏳ 달력 데이터 로딩 중...")
                 ProgressView()
             }
         }
         .onAppear {
-            print("🚀 달력 뷰가 나타남")
-            requestCalendarAccess()
-            let current = Date()
-            var initialMonths: [Date] = []
-            
-            for i in -12...12 {
-                if let date = calendar.date(byAdding: .month, value: i, to: current) {
-                    initialMonths.append(date)
-                }
+            setupInitialState()
+        }
+    }
+    
+    private func handleIndexChange(_ newIndex: Int) {
+        // 현재 월 업데이트만 즉시 수행
+        if months.indices.contains(newIndex) {
+            currentMonthBinding = months[newIndex]
+        }
+        
+        // 나머지 작업은 Task로 분리하여 순차적으로 처리
+        Task {
+            // 페이지 추가 로직
+            if newIndex >= months.count - bufferThreshold && !isAppendingMonths {
+                await appendMonths()
+            } else if newIndex <= bufferThreshold && !isPrependingMonths {
+                await prependMonths()
             }
-            months = initialMonths
-            print("📅 초기 달 설정: \(months.count)개")
-            if months.indices.contains(currentIndex) {
-                currentMonthBinding = months[currentIndex]
-            }
             
+            // 버퍼 유지
+            await maintainPageBuffer()
+        }
+    }
+    
+    private func setupInitialState() {
+        requestCalendarAccess()
+        let current = Date()
+        var initialMonths: [Date] = []
+        
+        for i in -12...12 {
+            if let date = calendar.date(byAdding: .month, value: i, to: current) {
+                initialMonths.append(date)
+            }
+        }
+        months = initialMonths
+        if months.indices.contains(currentIndex) {
+            currentMonthBinding = months[currentIndex]
+        }
+        
+        monthCache = MonthDataCache(modelContext: modelContext)
+        
+        if let cache = monthCache {
+            _ = cache.monthData(for: current)
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("RefreshCalendarCache"),
+            object: nil,
+            queue: .main
+        ) { _ in
             monthCache = MonthDataCache(modelContext: modelContext)
-            print("💾 월별 데이터 캐시 생성")
-            
-            // 현재 달의 데이터를 미리 로드
             if let cache = monthCache {
                 _ = cache.monthData(for: current)
-                print("📅 현재 달 데이터 프리로드 완료")
             }
-            
-            // 캐시 새로고침 알림을 구독
-            NotificationCenter.default.addObserver(
-                forName: NSNotification.Name("RefreshCalendarCache"),
-                object: nil,
-                queue: .main
-            ) { _ in
-                print("🔄 캘린더 캐시 새로고침 시작")
-                monthCache = MonthDataCache(modelContext: modelContext)
-                if let cache = monthCache {
-                    _ = cache.monthData(for: current)
-                    print("✅ 캘린더 캐시 새로고침 완료")
+        }
+    }
+    
+    private func maintainPageBuffer() async {
+        if months.count < minPageCount {
+            await appendMonths()
+        } else if months.count > maxPageCount {
+            let excessCount = months.count - maxPageCount
+            if currentIndex > excessCount {
+                await MainActor.run {
+                    withAnimation(.none) {
+                        months.removeFirst(excessCount)
+                        currentIndex -= excessCount
+                    }
                 }
             }
+        }
+    }
+    
+    private func appendMonths() async {
+        guard !isAppendingMonths else { return }
+        isAppendingMonths = true
+        
+        let newMonths = await Task.detached {
+            var months: [Date] = []
+            guard let lastMonth = self.months.last else { return months }
+            
+            for i in 1...12 {
+                if let date = self.calendar.date(byAdding: .month, value: i, to: lastMonth) {
+                    months.append(date)
+                }
+            }
+            return months
+        }.value
+        
+        await MainActor.run {
+            withAnimation(.none) {
+                months.append(contentsOf: newMonths)
+            }
+            isAppendingMonths = false
+        }
+    }
+    
+    private func prependMonths() async {
+        guard !isPrependingMonths else { return }
+        isPrependingMonths = true
+        
+        let newMonths = await Task.detached {
+            var months: [Date] = []
+            guard let firstMonth = self.months.first else { return months }
+            
+            for i in (1...12).reversed() {
+                if let date = self.calendar.date(byAdding: .month, value: -i, to: firstMonth) {
+                    months.append(date)
+                }
+            }
+            return months
+        }.value
+        
+        await MainActor.run {
+            withAnimation(.none) {
+                months.insert(contentsOf: newMonths, at: 0)
+                currentIndex += newMonths.count
+            }
+            isPrependingMonths = false
         }
     }
     
@@ -96,33 +172,6 @@ struct CalendarView: View {
                 print("캘린더 접근 권한이 거부되었습니다.")
             }
         }
-    }
-    
-    private func appendMonths() {
-        var newMonths: [Date] = []
-        guard let lastMonth = months.last else { return }
-        
-        for i in 1...12 {
-            if let date = calendar.date(byAdding: .month, value: i, to: lastMonth) {
-                newMonths.append(date)
-            }
-        }
-        
-        months.append(contentsOf: newMonths)
-    }
-    
-    private func prependMonths() {
-        var newMonths: [Date] = []
-        guard let firstMonth = months.first else { return }
-        
-        for i in (1...12).reversed() {
-            if let date = calendar.date(byAdding: .month, value: -i, to: firstMonth) {
-                newMonths.append(date)
-            }
-        }
-        
-        months.insert(contentsOf: newMonths, at: 0)
-        currentIndex += newMonths.count
     }
     
     private func logEventsForDate(_ date: Date) {
