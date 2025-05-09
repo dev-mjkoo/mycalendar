@@ -153,7 +153,31 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        updateCurrentMonth()
+        updateCurrentMonth() // 기존 유지
+        preloadEventsAroundVisibleMonths() // ✅ 새로운 프리로드 추가
+    }
+    
+    private func preloadEventsAroundVisibleMonths() {
+        let visibleIndexPaths = collectionView.indexPathsForVisibleItems
+        guard !visibleIndexPaths.isEmpty else { return }
+
+        let visibleItems = visibleIndexPaths.map { $0.item }
+        let minIndex = max((visibleItems.min() ?? 0) - 1, 0)
+        let maxIndex = min((visibleItems.max() ?? 0) + 1, visibleMonths.count - 1)
+
+        for index in minIndex...maxIndex {
+            let month = visibleMonths[index]
+            let key = Calendar.current.startOfMonth(for: month)
+
+            // 이미 캐시돼있으면 생략
+            if eventsByMonth[key] != nil { continue }
+
+            EventKitManager.shared.fetchEvents(for: month) { events in
+                DispatchQueue.main.async {
+                    self.setEvents(for: month, events: events)
+                }
+            }
+        }
     }
 
     /// 현재 화면 중앙에 보이는 MonthCell의 날짜 기반으로 타이틀 업데이트
