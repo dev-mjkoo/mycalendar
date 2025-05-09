@@ -26,6 +26,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     var weekCount: Int {
         return Int(ceil(Double(days.count) / 7.0))
     }
+    //✅ 1. MonthCell에 선택된 날짜 전달 & 저장
+    var selectedDate: Date?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -41,7 +43,9 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
     // MARK: - 구성 메서드
 
-    func configure(with date: Date) {
+    func configure(with date: Date, selected: Date?) {
+        self.selectedDate = selected
+
         // 타이틀 설정
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -78,6 +82,14 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     }
 
     // MARK: - 컬렉션 뷰 레이아웃 및 셀 설정
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let selected = days[indexPath.item]
+        guard selected != Date.distantPast else { return }
+
+        selectedDate = selected
+        collectionView.reloadData()  // 전체 리로드 (필요 시 애니메이션 개선 가능)
+    }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return days.count
@@ -86,16 +98,18 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "DayCell", for: indexPath) as! DayCell
 
-        // 셀 테두리 디버그용
         cell.layer.borderWidth = 0.5
         cell.layer.borderColor = UIColor.lightGray.cgColor
 
         let date = days[indexPath.item]
         if date == Date.distantPast {
-            cell.configure(day: "")
+            cell.configure(day: "", isToday: false, isSelected: false)
         } else {
             let day = calendar.component(.day, from: date)
-            cell.configure(day: "\(day)")
+            let isToday = calendar.isDate(date, inSameDayAs: Date())
+            let isSelected = selectedDate != nil && calendar.isDate(date, inSameDayAs: selectedDate!)
+
+            cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected)
         }
 
         return cell

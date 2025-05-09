@@ -19,6 +19,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     var onMonthChange: ((String) -> Void)?
     private var lastReportedMonth: String?
     var monthHeights: [IndexPath: CGFloat] = [:]
+    var selectedDate: Date?
     
     
     // MARK: - View Lifecycle
@@ -74,7 +75,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MonthCell", for: indexPath) as! MonthCell
-        cell.configure(with: visibleMonths[indexPath.item])
+        let date = visibleMonths[indexPath.item]
+        cell.configure(with: date, selected: selectedDate)
         return cell
     }
 

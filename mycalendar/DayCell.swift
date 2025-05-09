@@ -22,7 +22,23 @@ class DayCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(day: String) {
+    func configure(day: String, isToday: Bool, isSelected: Bool) {
         label.text = day
+
+        if isSelected {
+            contentView.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.3)
+            label.textColor = .systemGreen
+            contentView.layer.cornerRadius = 8
+            contentView.layer.masksToBounds = true
+        } else if isToday {
+            contentView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.2)
+            label.textColor = .systemBlue
+            contentView.layer.cornerRadius = 8
+            contentView.layer.masksToBounds = true
+        } else {
+            contentView.backgroundColor = .clear
+            label.textColor = .label
+            contentView.layer.cornerRadius = 0
+        }
     }
 }
