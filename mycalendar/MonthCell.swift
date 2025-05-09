@@ -105,8 +105,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "DayCell", for: indexPath) as! DayCell
 
-        cell.layer.borderWidth = 0.5
-        cell.layer.borderColor = UIColor.lightGray.cgColor
+//        cell.layer.borderWidth = 0.5
+//        cell.layer.borderColor = UIColor.lightGray.cgColor
 
         let date = days[indexPath.item]
 

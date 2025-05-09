@@ -19,7 +19,7 @@ class DayCell: UICollectionViewCell {
         eventStack.distribution = .fill
         eventStack.translatesAutoresizingMaskIntoConstraints = false
 
-        for _ in 0..<4 {
+        for _ in 0..<2 {
             let dot = UIView()
             dot.translatesAutoresizingMaskIntoConstraints = false
             dot.backgroundColor = .systemBlue
@@ -99,13 +99,13 @@ class DayCell: UICollectionViewCell {
             return
         }
 
-        for (i, event) in events.prefix(3).enumerated() {
+        for (i, event) in events.prefix(2).enumerated() {
             eventViews[i].dot.backgroundColor = UIColor(cgColor: event.calendar.cgColor) ?? .systemBlue
             eventViews[i].title.text = event.title
             eventStack.arrangedSubviews[i].isHidden = false
         }
 
-        let extra = events.count - 3
+        let extra = events.count - 2
         if extra > 0 {
             overflowLabel.text = "외 \(extra)개"
             overflowLabel.isHidden = false
