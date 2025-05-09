@@ -55,14 +55,18 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 12
 
-        // 정확한 MonthCell 높이 계산
-        let dayCellHeight = UIScreen.main.bounds.width / 7
-        let rowSpacing: CGFloat = 8
-        let rows = 6
-        let calendarHeight = CGFloat(rows) * dayCellHeight + CGFloat(rows - 1) * rowSpacing
-        let titleHeight: CGFloat = 40 // 타이틀 + 여백
+        let dayCellHeight = CalendarLayout.dayCellHeight
+        let rowSpacing = CalendarLayout.rowSpacing
+        let rows = CalendarLayout.rowsPerMonth
+        let titleHeight = CalendarLayout.monthTitleHeight
+        let padding = CalendarLayout.verticalPadding
 
-        layout.itemSize = CGSize(width: view.bounds.width, height: titleHeight + calendarHeight + 16) // top 8 + bottom 
+        let calendarHeight = CGFloat(rows) * dayCellHeight + CGFloat(rows - 1) * rowSpacing
+
+        layout.itemSize = CGSize(
+            width: view.bounds.width,
+            height: titleHeight + calendarHeight + padding
+        )
 
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -106,12 +110,14 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
 
         let date = visibleMonths[indexPath.item]
         let weekCount = calculateWeekCount(for: date)
-        let dayCellHeight = collectionView.bounds.width / 7
-        let spacing: CGFloat = 8
-        let titleHeight: CGFloat = 40
+
+        let dayCellHeight = CalendarLayout.dayCellHeight
+        let spacing = CalendarLayout.rowSpacing
+        let titleHeight = CalendarLayout.monthTitleHeight
+        let padding = CalendarLayout.verticalPadding
 
         let calendarHeight = CGFloat(weekCount) * dayCellHeight + CGFloat(weekCount - 1) * spacing
-        let totalHeight = titleHeight + calendarHeight + 16
+        let totalHeight = titleHeight + calendarHeight + padding
 
         monthHeights[indexPath] = totalHeight
         return CGSize(width: collectionView.bounds.width, height: totalHeight)
@@ -119,13 +125,16 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     
     func calculateWeekCount(for date: Date) -> Int {
         let calendar = Calendar.current
+        
         guard let range = calendar.range(of: .day, in: .month, for: date),
               let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) else {
-            return 6
+            return 6 // 기본 fallback
         }
 
-        let weekdayOffset = calendar.component(.weekday, from: firstOfMonth) - calendar.firstWeekday
-        let totalDays = ((weekdayOffset + 7) % 7) + range.count
+        let weekday = calendar.component(.weekday, from: firstOfMonth)
+        let offset = (weekday - calendar.firstWeekday + 7) % 7
+        let totalDays = offset + range.count
+
         return Int(ceil(Double(totalDays) / 7.0))
     }
 
@@ -179,6 +188,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     // ✅ 2. CalendarViewController에 visibleMonths만 리로드하는 메서드 추가
     func reloadVisibleMonths() {
         let visiblePaths = collectionView.indexPathsForVisibleItems.sorted(by: { $0.item < $1.item })
+
 
         for path in visiblePaths {
             let month = visibleMonths[path.item]
