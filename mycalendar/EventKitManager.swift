@@ -71,9 +71,12 @@ class EventKitManager: ObservableObject {
         
         // ✅ 캐시 확인 먼저
         if let cached = eventCache[startOfMonth] {
+            print("🧠 [CACHE HIT] \(formattedMonth(from: startOfMonth))")
             completion(cached)
             return
         }
+        
+        print("🌐 [FETCH EVENTS] \(formattedMonth(from: startOfMonth))")
         
         let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
         let predicate = eventStore.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
@@ -98,5 +101,11 @@ class EventKitManager: ObservableObject {
     
     func clearCache() {
         eventCache.removeAll()
+    }
+    
+    private func formattedMonth(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: date)
     }
 }
