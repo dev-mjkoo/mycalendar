@@ -12,7 +12,7 @@ import ActivityKit
 private let openSettingsURLString = "app-settings:"
 
 struct SettingsView: View {
-    @StateObject private var calendarManager = CalendarManager.shared
+    @StateObject private var eventKitManager = EventKitManager.shared
     @StateObject private var liveActivityManager = LiveActivityManager.shared
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -36,33 +36,33 @@ struct SettingsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                        Toggle(isOn: Binding(
-                            get: { calendarManager.isCalendarAccessGranted },
-                            set: { newValue in
-                                if newValue {
-                                    Task {
-                                        let granted = await calendarManager.requestCalendarAccess()
-                                        if !granted {
-                                            showingSettingsAlert = true
-                                            calendarManager.revokeCalendarAccess()
-                                        }
+                    Toggle(isOn: Binding(
+                        get: { eventKitManager.isCalendarAccessGranted },
+                        set: { newValue in
+                            if newValue {
+                                Task {
+                                    let granted = await eventKitManager.requestAccess()
+                                    if !granted {
+                                        showingSettingsAlert = true
+                                        eventKitManager.revokeAccessFlagOnly()
                                     }
-                                } else {
-                                    calendarManager.revokeCalendarAccess()
                                 }
+                            } else {
+                                showingSettingsAlert = true
                             }
-                        )) {
-                            Text("캘린더 연동")
                         }
-                        .disabled(disableCalendarToggle)
-
-                        if disableCalendarToggle {
-                            Text("캘린더 권한은 시스템 설정에서만 끌 수 있습니다.\niPhone 설정 앱 > mycalendar에서 변경하세요.")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .padding(.leading, 4)
-                        }
+                    )) {
+                        Text("캘린더 연동")
                     }
+                    .disabled(disableCalendarToggle)
+
+                    if disableCalendarToggle {
+                        Text("캘린더 권한은 시스템 설정에서만 끌 수 있습니다.\niPhone 설정 앱 > mycalendar에서 변경하세요.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding(.leading, 4)
+                    }
+                }
             }
         }
         .navigationTitle("설정")
@@ -91,7 +91,7 @@ struct SettingsView: View {
     }
 
     private func updateToggleAvailability() async {
-        await calendarManager.checkCalendarAccess()
+        await eventKitManager.checkCalendarAccess()
         let status = EKEventStore.authorizationStatus(for: .event)
         disableCalendarToggle = (status == .fullAccess)
     }
@@ -104,4 +104,3 @@ struct SettingsView_Previews: PreviewProvider {
         }
     }
 }
-

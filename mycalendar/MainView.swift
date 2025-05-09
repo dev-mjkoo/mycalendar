@@ -16,7 +16,6 @@ struct MainView: View {
                         selectedDate: $selectedDate
                     )
             // todo : 나중에 여기서 하단 sheet를 띄워서 일별 상세 보여줘도되겟다..
-            
 //            if let selected = selectedDate {
 //                Text("선택한 날짜: \(selected.formatted(date: .long, time: .omitted))")
 //                    .padding()
