@@ -25,6 +25,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     
     var eventsByMonth: [Date: [Date: [EKEvent]]] = [:]  // [월: [날짜: [이벤트]]]
     
+    private var preloadWorkItem: DispatchWorkItem?
+
     
     // MARK: - View Lifecycle
 
@@ -75,6 +77,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         collectionView.showsVerticalScrollIndicator = false
         collectionView.scrollsToTop = false
         collectionView.register(MonthCell.self, forCellWithReuseIdentifier: "MonthCell")
+        collectionView.prefetchDataSource = self
         view.addSubview(collectionView)
 
         // 시작 위치: 기준 월을 가운데로
@@ -152,9 +155,17 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         }
     }
 
+    
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        updateCurrentMonth() // 기존 유지
-        preloadEventsAroundVisibleMonths() // ✅ 새로운 프리로드 추가
+        updateCurrentMonth()
+
+        // 🔄 0.2초에 한 번만 실행
+        preloadWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.preloadEventsAroundVisibleMonths()
+        }
+        preloadWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
     }
     
     private func preloadEventsAroundVisibleMonths() {
@@ -169,8 +180,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
             let month = visibleMonths[index]
             let key = Calendar.current.startOfMonth(for: month)
 
-            // 이미 캐시돼있으면 생략
-            if eventsByMonth[key] != nil { continue }
+            // 이미 캐시화 되어있으면 생략
+            guard eventsByMonth[key] == nil else { continue }
 
             EventKitManager.shared.fetchEvents(for: month) { events in
                 DispatchQueue.main.async {
@@ -228,5 +239,22 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
 extension Calendar {
     func startOfMonth(for date: Date) -> Date {
         return self.date(from: self.dateComponents([.year, .month], from: date))!
+    }
+}
+
+extension CalendarViewController: UICollectionViewDataSourcePrefetching {
+    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+        for indexPath in indexPaths {
+            let month = visibleMonths[indexPath.item]
+            let key = Calendar.current.startOfMonth(for: month)
+
+            guard eventsByMonth[key] == nil else { continue }
+
+            EventKitManager.shared.fetchEvents(for: month) { events in
+                DispatchQueue.main.async {
+                    self.setEvents(for: month, events: events)
+                }
+            }
+        }
     }
 }
