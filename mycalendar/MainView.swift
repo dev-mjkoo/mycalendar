@@ -1,28 +1,56 @@
 import SwiftUI
 
 struct MainView: View {
-    @State private var currentDate = Date()
+    @State private var scrollToToday: Bool = false
+    @State private var hasAppeared = false //최초 1회만 실행되도록 hasAppeared 플래그 추가
+    @State private var currentMonthText: String = "캘린더"
     
     var body: some View {
-        NavigationView {
-            VStack {
-                        UIKitCalendarView()
-                            .edgesIgnoringSafeArea(.all)
-                    }
-            .navigationTitle("캘린더")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
-                        Image(systemName: "gear")
-                    }
+        VStack(spacing: 0) {
+            weekdayHeader
+            UIKitCalendarView(currentMonthText: $currentMonthText, scrollToToday: $scrollToToday)
+        }
+        .navigationTitle(currentMonthText)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button("오늘") {
+                    scrollToToday.toggle()
+                }
+
+                NavigationLink(destination: SettingsView()) {
+                    Image(systemName: "gear")
+                }
+            }
+        }
+        .onAppear {
+            if !hasAppeared {
+                hasAppeared = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    scrollToToday = true
                 }
             }
         }
     }
+    
+    var weekdayHeader: some View {
+        HStack {
+            ForEach(["일", "월", "화", "수", "목", "금", "토"], id: \.self) { day in
+                Text(day)
+                    .foregroundColor(day == "일" ? .red : day == "토" ? .blue : .primary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    
+    
+    
+    
 }
 
 struct MainView_Previews: PreviewProvider {
     static var previews: some View {
         MainView()
     }
-} 
+}

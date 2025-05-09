@@ -8,11 +8,27 @@ import SwiftUI
 import UIKit
 
 struct UIKitCalendarView: UIViewControllerRepresentable {
+    @Binding var currentMonthText: String
+    @Binding var scrollToToday: Bool
+    
+    // UIKit - swiftui 바인딩
     func makeUIViewController(context: Context) -> CalendarViewController {
-        return CalendarViewController()
+        let vc = CalendarViewController()
+        vc.onMonthChange = { newText in
+            DispatchQueue.main.async {
+                self.currentMonthText = newText
+            }
+        }
+        return vc
     }
-
+    
     func updateUIViewController(_ uiViewController: CalendarViewController, context: Context) {
-        // SwiftUI에서 데이터 바뀔 때 호출됨 (우리는 지금 필요 없음)
+        // 변경되면 오늘로 스크롤
+        if scrollToToday {
+            uiViewController.scrollToToday()
+            DispatchQueue.main.async {
+                self.scrollToToday = false
+            }
+        }
     }
 }

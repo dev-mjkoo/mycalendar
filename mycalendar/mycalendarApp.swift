@@ -37,7 +37,10 @@ struct mycalendarApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainView()
+            NavigationStack{
+                MainView()
+                
+            }
         }
         .modelContainer(sharedModelContainer)
     }
