@@ -10,6 +10,8 @@ struct MainView: View {
     @StateObject private var eventKitManager = EventKitManager.shared
     @State private var currentMonth = Date() // 현재 보고 있는 달
     @Environment(\.scenePhase) private var scenePhase
+    
+    @State private var refreshVisibleMonths: Bool = false
 
     
     var body: some View {
@@ -18,7 +20,8 @@ struct MainView: View {
             UIKitCalendarView(
                         currentMonthText: $currentMonthText,
                         scrollToToday: $scrollToToday,
-                        selectedDate: $selectedDate
+                        selectedDate: $selectedDate,
+                        refreshVisibleMonths: $refreshVisibleMonths
                     )
             // todo : 나중에 여기서 하단 sheet를 띄워서 일별 상세 보여줘도되겟다..
 //            if let selected = selectedDate {
@@ -39,7 +42,12 @@ struct MainView: View {
             }
         }
         .onChange(of: scenePhase) { newPhase in
+            
+            
+            EventKitManager.shared.clearCache()
+            refreshVisibleMonths = true
             if newPhase == .active {
+                
                 Task {
                     await eventKitManager.checkCalendarAccess()
                 }

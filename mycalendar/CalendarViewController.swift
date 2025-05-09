@@ -175,6 +175,18 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         let indexPath = IndexPath(item: todayIndex, section: 0)
         collectionView.scrollToItem(at: indexPath, at: .top, animated: true)
     }
+    
+    // ✅ 2. CalendarViewController에 visibleMonths만 리로드하는 메서드 추가
+    func reloadVisibleMonths() {
+        let visiblePaths = collectionView.indexPathsForVisibleItems.sorted(by: { $0.item < $1.item })
+
+        for path in visiblePaths {
+            let month = visibleMonths[path.item]
+            EventKitManager.shared.fetchEvents(for: month) { events in
+                self.setEvents(for: month, events: events)
+            }
+        }
+    }
 }
 
 extension Calendar {

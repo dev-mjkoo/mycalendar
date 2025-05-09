@@ -11,6 +11,8 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
     @Binding var currentMonthText: String
     @Binding var scrollToToday: Bool
     @Binding var selectedDate: Date?
+    @Binding var refreshVisibleMonths: Bool
+
 
     
     // UIKit - swiftui 바인딩
@@ -53,6 +55,13 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
             uiViewController.scrollToToday()
             DispatchQueue.main.async {
                 self.scrollToToday = false
+            }
+        }
+        
+        if refreshVisibleMonths {
+            uiViewController.reloadVisibleMonths()
+            DispatchQueue.main.async {
+                self.refreshVisibleMonths = false
             }
         }
     }

@@ -19,6 +19,8 @@ struct SettingsView: View {
 
     @State private var showingSettingsAlert = false
     @State private var disableCalendarToggle = false
+    
+    @State private var refreshVisibleMonths: Bool = false
 
     var body: some View {
         List {
@@ -78,6 +80,11 @@ struct SettingsView: View {
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
+                
+                
+                EventKitManager.shared.clearCache()
+                refreshVisibleMonths = true
+                
                 Task {
                     await updateToggleAvailability()
                 }
