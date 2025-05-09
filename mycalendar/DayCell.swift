@@ -151,10 +151,19 @@ class DayCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+
         label.text = ""
+        
+        // ✅ 모든 이벤트 뷰를 숨기기 (뷰 제거 X)
+        for (dot, title) in eventViews {
+            dot.backgroundColor = .clear
+            title.text = ""
+        }
+
         for view in eventStack.arrangedSubviews {
             view.isHidden = true
         }
+
         overflowLabel.text = nil
         overflowLabel.isHidden = true
     }
