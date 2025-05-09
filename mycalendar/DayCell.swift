@@ -59,12 +59,30 @@ class DayCell: UICollectionViewCell {
         eventStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
         if let events = events {
-            for event in events.prefix(2) { // 최대 2개까지만
+            for event in events.prefix(2) {
+                let stack = UIStackView()
+                stack.axis = .horizontal
+                stack.spacing = 4
+                stack.alignment = .center
+
+                // 원형 색상 뷰
+                let colorDot = UIView()
+                colorDot.translatesAutoresizingMaskIntoConstraints = false
+                colorDot.backgroundColor = UIColor(cgColor: event.calendar.cgColor)
+                colorDot.widthAnchor.constraint(equalToConstant: 6).isActive = true
+                colorDot.heightAnchor.constraint(equalToConstant: 6).isActive = true
+                colorDot.layer.cornerRadius = 3
+                colorDot.clipsToBounds = true
+
+                // 텍스트 라벨
                 let eventLabel = UILabel()
-                eventLabel.text = "• \(event.title ?? "")"
+                eventLabel.text = event.title ?? ""
                 eventLabel.font = UIFont.systemFont(ofSize: 10)
                 eventLabel.textColor = .darkGray
-                eventStack.addArrangedSubview(eventLabel)
+
+                stack.addArrangedSubview(colorDot)
+                stack.addArrangedSubview(eventLabel)
+                eventStack.addArrangedSubview(stack)
             }
         }
         
