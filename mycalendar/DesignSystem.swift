@@ -9,7 +9,7 @@ import UIKit
 
 struct CalendarLayout {
     /// 요일 셀 하나의 높이 (정사각형 기준)
-    static let dayCellHeight: CGFloat = 110
+    static let dayCellHeight: CGFloat = 90
     
     /// 요일 셀 하나의 너비 계산용 분모 (보통 7일)
     static let dayCellWidthDivider: CGFloat = 7
@@ -21,7 +21,7 @@ struct CalendarLayout {
     static let rowsPerMonth: Int = 6
     
     /// 월 타이틀 (예: "May 2025")의 높이
-    static let monthTitleHeight: CGFloat = 40
+    static let monthTitleHeight: CGFloat = 32
     
     /// MonthCell 상하 여백
     static let verticalPadding: CGFloat = 16
