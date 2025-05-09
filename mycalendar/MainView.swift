@@ -6,10 +6,9 @@ struct MainView: View {
     var body: some View {
         NavigationView {
             VStack {
-                // 여기에 메인 캘린더 뷰가 들어갈 예정
-                Text("캘린더가 여기에 표시됩니다")
-                    .font(.title)
-            }
+                        UIKitCalendarView()
+                            .edgesIgnoringSafeArea(.all)
+                    }
             .navigationTitle("캘린더")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
