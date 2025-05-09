@@ -4,7 +4,7 @@ import EventKit
 class DayCell: UICollectionViewCell {
     private let label = UILabel()
     private let eventStack = UIStackView()
-    private var eventViews: [(dot: UIView, title: UILabel)] = []
+    private var eventLabels: [UILabel] = []
     private let overflowLabel = UILabel()
 
     override init(frame: CGRect) {
@@ -15,45 +15,24 @@ class DayCell: UICollectionViewCell {
 
         eventStack.axis = .vertical
         eventStack.spacing = 2
-        eventStack.alignment = .fill // ✅ 변경
+        eventStack.alignment = .fill
         eventStack.distribution = .fill
         eventStack.translatesAutoresizingMaskIntoConstraints = false
 
+        // ✅ dot 대신 글자에 배경색 + opacity
         for _ in 0..<2 {
-            let dot = UIView()
-            dot.translatesAutoresizingMaskIntoConstraints = false
-            dot.backgroundColor = .systemBlue
-            dot.widthAnchor.constraint(equalToConstant: 6).isActive = true
-            dot.heightAnchor.constraint(equalToConstant: 6).isActive = true
-            dot.layer.cornerRadius = 3
-            dot.clipsToBounds = true
-
             let title = UILabel()
             title.font = .systemFont(ofSize: 10)
-            title.textColor = .darkGray
+            title.textColor = .label
+            title.numberOfLines = 1
+            title.textAlignment = .left
+            title.layer.cornerRadius = 4
+            title.clipsToBounds = true
             title.setContentHuggingPriority(.defaultLow, for: .horizontal)
             title.setContentCompressionResistancePriority(.required, for: .horizontal)
-
-            // 👉 dot의 수직 가운데 정렬을 위해 별도 컨테이너
-            let dotContainer = UIView()
-            dotContainer.translatesAutoresizingMaskIntoConstraints = false
-            dotContainer.addSubview(dot)
-            NSLayoutConstraint.activate([
-                dot.centerYAnchor.constraint(equalTo: dotContainer.centerYAnchor),
-                dot.leadingAnchor.constraint(equalTo: dotContainer.leadingAnchor),
-                dot.trailingAnchor.constraint(equalTo: dotContainer.trailingAnchor),
-                dot.topAnchor.constraint(greaterThanOrEqualTo: dotContainer.topAnchor),
-                dot.bottomAnchor.constraint(lessThanOrEqualTo: dotContainer.bottomAnchor)
-            ])
-
-            let stack = UIStackView(arrangedSubviews: [dotContainer, title])
-            stack.axis = .horizontal
-            stack.alignment = .center
-            stack.spacing = 4
-            stack.isHidden = true
-
-            eventStack.addArrangedSubview(stack)
-            eventViews.append((dot: dot, title: title))
+            title.isHidden = true
+            eventStack.addArrangedSubview(title)
+            eventLabels.append(title)
         }
 
         overflowLabel.font = .systemFont(ofSize: 10)
@@ -100,9 +79,12 @@ class DayCell: UICollectionViewCell {
         }
 
         for (i, event) in events.prefix(2).enumerated() {
-            eventViews[i].dot.backgroundColor = UIColor(cgColor: event.calendar.cgColor) ?? .systemBlue
-            eventViews[i].title.text = event.title
-            eventStack.arrangedSubviews[i].isHidden = false
+            let label = eventLabels[i]
+            label.text = " \(event.title ?? "") "
+            let color = UIColor(cgColor: event.calendar.cgColor)
+            label.textColor = color
+            label.backgroundColor = color.withAlphaComponent(0.2)
+            label.isHidden = false
         }
 
         let extra = events.count - 2
