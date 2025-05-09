@@ -16,7 +16,7 @@ class LiveActivityManager: ObservableObject {
     func startLiveActivity() async {
         // 이미 실행 중인 Activity가 있는지 확인
         if !Activity<CalendarActivityAttributes>.activities.isEmpty {
-            print("Live Activity is already running")
+            log("Live Activity is already running")
             isLiveActivityEnabled = true
             return
         }
@@ -59,9 +59,9 @@ class LiveActivityManager: ObservableObject {
                 pushType: nil
             )
             isLiveActivityEnabled = true
-            print("Live Activity started: \(activity?.id ?? "")")
+            log("Live Activity started: \(activity?.id ?? "")")
         } catch {
-            print("Error starting Live Activity: \(error.localizedDescription)")
+            log("Error starting Live Activity: \(error.localizedDescription)")
             isLiveActivityEnabled = false
         }
     }
@@ -76,7 +76,7 @@ class LiveActivityManager: ObservableObject {
         }
         
         isLiveActivityEnabled = false
-        print("Live Activity stopped")
+        log("Live Activity stopped")
     }
     
     @MainActor

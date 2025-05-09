@@ -69,14 +69,14 @@ struct MainView: View {
                     EventKitManager.shared.fetchEvents(for: currentMonth) { eventsByDate in
                         for (date, events) in eventsByDate {
                             let dateStr = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
-                            print("📅 \(dateStr): \(events.count)개 이벤트")
+                            log("📅 \(dateStr): \(events.count)개 이벤트")
                             for event in events {
-                                print("   • \(event.title ?? "(제목 없음)")")
+                                log("   • \(event.title ?? "(제목 없음)")")
                             }
                         }
                     }
                 } else {
-                    print("❗️캘린더 권한이 없어서 이벤트를 불러올 수 없음")
+                    log("❗️캘린더 권한이 없어서 이벤트를 불러올 수 없음")
                 }
             }
         }

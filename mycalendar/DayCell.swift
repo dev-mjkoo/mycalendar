@@ -42,16 +42,16 @@ class DayCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-
+        
         label.textAlignment = .center
         label.font = UIFont.systemFont(ofSize: 16)
-
+        
         eventStack.axis = .vertical
         eventStack.spacing = 1
         eventStack.alignment = .leading
         eventStack.distribution = .fillProportionally
         eventStack.translatesAutoresizingMaskIntoConstraints = false
-
+        
         // 최대 4개의 이벤트 뷰 미리 구성
         for _ in 0..<4 {
             let dot = UIView()
@@ -60,46 +60,51 @@ class DayCell: UICollectionViewCell {
             dot.heightAnchor.constraint(equalToConstant: 6).isActive = true
             dot.layer.cornerRadius = 3
             dot.clipsToBounds = true
-
+            
             let title = UILabel()
             title.font = .systemFont(ofSize: 10)
             title.textColor = .darkGray
-
+            title.numberOfLines = 1
+            title.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+            
             let stack = UIStackView(arrangedSubviews: [dot, title])
             stack.axis = .horizontal
             stack.spacing = 4
             stack.alignment = .center
             stack.isHidden = true
-
+            
             eventStack.addArrangedSubview(stack)
             eventViews.append((dot: dot, title: title))
         }
-
+        
         // 오버플로 텍스트 추가 ("외 N개")
         overflowLabel.font = .systemFont(ofSize: 10)
         overflowLabel.textColor = .gray
+        overflowLabel.numberOfLines = 1
+        overflowLabel.textAlignment = .right
         overflowLabel.isHidden = true
         eventStack.addArrangedSubview(overflowLabel)
-
-//        👉 label은 “내 높이는 꼭 지킬게!”
-//        👉 eventStack은 “난 남는 공간 줄게!”
+        
+        // Hugging & Compression 우선순위 설정
         label.setContentHuggingPriority(.required, for: .vertical)
         eventStack.setContentHuggingPriority(.defaultLow, for: .vertical)
+        eventStack.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         
         let container = UIStackView(arrangedSubviews: [label, eventStack])
         container.axis = .vertical
         container.spacing = 4
+        container.alignment = .fill
+        container.distribution = .fill
         container.translatesAutoresizingMaskIntoConstraints = false
-
+        
         contentView.addSubview(container)
         NSLayoutConstraint.activate([
             container.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
             container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
             container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-            container.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -4)
+            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4) // 💡 확실한 고정!
         ])
     }
-
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

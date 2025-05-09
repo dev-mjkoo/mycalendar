@@ -26,9 +26,9 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
                 EventKitManager.shared.fetchEvents(for: monthDate) { eventsByDate in
                     for (date, events) in eventsByDate {
                         let dateStr = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
-                        print("📅 \(dateStr): \(events.count)개 이벤트")
+                        log("📅 \(dateStr): \(events.count)개 이벤트")
                         for event in events.prefix(2) {
-                            print("   • \(event.title ?? "(제목 없음)")")
+                            log("   • \(event.title ?? "(제목 없음)")")
                         }
                     }
                     

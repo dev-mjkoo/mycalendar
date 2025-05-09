@@ -43,7 +43,7 @@ class EventKitManager: ObservableObject {
                 isCalendarAccessGranted = granted
                 return granted
             } catch {
-                print("캘린더 권한 요청 실패: \(error.localizedDescription)")
+                log("캘린더 권한 요청 실패: \(error.localizedDescription)")
                 isCalendarAccessGranted = false
                 return false
             }
@@ -71,12 +71,12 @@ class EventKitManager: ObservableObject {
         
         // ✅ 캐시 확인 먼저
         if let cached = eventCache[startOfMonth] {
-            print("🧠 [CACHE HIT] \(formattedMonth(from: startOfMonth))")
+            log("🧠 [CACHE HIT] \(formattedMonth(from: startOfMonth))")
             completion(cached)
             return
         }
         
-        print("🌐 [FETCH EVENTS] \(formattedMonth(from: startOfMonth))")
+        log("🌐 [FETCH EVENTS] \(formattedMonth(from: startOfMonth))")
         
         let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
         let predicate = eventStore.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
