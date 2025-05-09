@@ -60,27 +60,33 @@ class EventKitManager: ObservableObject {
     /// 특정 월의 이벤트 가져오기
     func fetchEvents(for month: Date, completion: @escaping ([Date: [EKEvent]]) -> Void) {
         guard isCalendarAccessGranted else {
-            completion([:]) // 권한 없으면 빈값 리턴
-            return
-        }
-
-        let calendar = Calendar.current
-        guard let start = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
-              let end = calendar.date(byAdding: .month, value: 1, to: start) else {
             completion([:])
             return
         }
 
-        let predicate = eventStore.predicateForEvents(withStart: start, end: end, calendars: nil)
+        let calendar = Calendar.current
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
+              let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
+            completion([:])
+            return
+        }
+
+        let predicate = eventStore.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
         let events = eventStore.events(matching: predicate)
 
-        // 날짜별로 묶기
         var grouped: [Date: [EKEvent]] = [:]
+
         for event in events {
-            let key = calendar.startOfDay(for: event.startDate)
-            grouped[key, default: []].append(event)
+            // 날짜별로 분해 (중복 표시)
+            let start = max(calendar.startOfDay(for: event.startDate), calendar.startOfDay(for: startOfMonth))
+            let end = min(calendar.startOfDay(for: event.endDate), calendar.startOfDay(for: endOfMonth))
+
+            var date = start
+            while date <= end {
+                grouped[date, default: []].append(event)
+                date = calendar.date(byAdding: .day, value: 1, to: date)!
+            }
         }
 
         completion(grouped)
-    }
-}
+    }}

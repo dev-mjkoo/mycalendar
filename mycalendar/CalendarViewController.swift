@@ -16,7 +16,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     var visibleMonths: [Date] = []
     let calendar = Calendar.current
     let totalVisible = 1000  // 과거 500 ~ 미래 500개월
-    var onMonthChange: ((String) -> Void)?
+    var onMonthChange: ((String, Date) -> Void)?  // ✅ 문자열 + 해당 월 날짜
     private var lastReportedMonth: String?
     var monthHeights: [IndexPath: CGFloat] = [:]
     var selectedDate: Date?
@@ -156,7 +156,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         // 중복 호출 방지
         if newMonth != lastReportedMonth {
             lastReportedMonth = newMonth
-            onMonthChange?(newMonth)
+            onMonthChange?(newMonth, date) // ✅ 날짜 같이 전달
         }
     }
     

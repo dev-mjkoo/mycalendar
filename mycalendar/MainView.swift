@@ -1,10 +1,15 @@
 import SwiftUI
+import EventKit
 
 struct MainView: View {
     @State private var scrollToToday: Bool = false
     @State private var hasAppeared = false //최초 1회만 실행되도록 hasAppeared 플래그 추가
     @State private var currentMonthText: String = "캘린더"
     @State private var selectedDate: Date? = nil
+    
+    @StateObject private var eventKitManager = EventKitManager.shared
+    @State private var currentMonth = Date() // 현재 보고 있는 달
+    @Environment(\.scenePhase) private var scenePhase
 
     
     var body: some View {
@@ -33,12 +38,37 @@ struct MainView: View {
                 }
             }
         }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                Task {
+                    await eventKitManager.checkCalendarAccess()
+                }
+            }
+        }
         
         .onAppear {
             if !hasAppeared {
                 hasAppeared = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     scrollToToday = true
+                }
+            }
+
+            Task {
+                await eventKitManager.checkCalendarAccess()
+                
+                if eventKitManager.isCalendarAccessGranted {
+                    EventKitManager.shared.fetchEvents(for: currentMonth) { eventsByDate in
+                        for (date, events) in eventsByDate {
+                            let dateStr = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
+                            print("📅 \(dateStr): \(events.count)개 이벤트")
+                            for event in events {
+                                print("   • \(event.title ?? "(제목 없음)")")
+                            }
+                        }
+                    }
+                } else {
+                    print("❗️캘린더 권한이 없어서 이벤트를 불러올 수 없음")
                 }
             }
         }

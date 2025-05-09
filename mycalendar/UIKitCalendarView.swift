@@ -16,9 +16,20 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
     // UIKit - swiftui 바인딩
     func makeUIViewController(context: Context) -> CalendarViewController {
         let vc = CalendarViewController()
-        vc.onMonthChange = { newText in
+        vc.onMonthChange = { newText, monthDate in
             DispatchQueue.main.async {
                 self.currentMonthText = newText
+
+                // ✅ 달이 바뀔 때마다 이벤트 불러오기
+                EventKitManager.shared.fetchEvents(for: monthDate) { eventsByDate in
+                    for (date, events) in eventsByDate {
+                        let dateStr = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
+                        print("📅 \(dateStr): \(events.count)개 이벤트")
+                        for event in events.prefix(2) {
+                            print("   • \(event.title ?? "(제목 없음)")")
+                        }
+                    }
+                }
             }
         }
         
