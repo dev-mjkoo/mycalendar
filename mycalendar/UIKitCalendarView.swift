@@ -29,9 +29,14 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
                             print("   • \(event.title ?? "(제목 없음)")")
                         }
                     }
+                    
+                    vc.setEvents(for: monthDate, events: eventsByDate)
+
                 }
             }
+            
         }
+        
         
         vc.onDateSelected = { date in
             DispatchQueue.main.async {

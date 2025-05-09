@@ -13,6 +13,7 @@
 //
 
 import UIKit
+import EventKit
 
 class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -30,6 +31,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     var selectedDate: Date?
     var onDateSelected: ((Date) -> Void)?
 
+    private var eventsByDate: [Date: [EKEvent]] = [:] // 👈 추가
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
 
@@ -44,8 +47,9 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
     // MARK: - 구성 메서드
 
-    func configure(with date: Date, selected: Date?) {
+    func configure(with date: Date, selected: Date?, events: [Date: [EKEvent]] = [:]) {
         self.selectedDate = selected
+        self.eventsByDate = events // 👈 저장
 
         // 타이틀 설정
         let formatter = DateFormatter()
@@ -105,14 +109,16 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         cell.layer.borderColor = UIColor.lightGray.cgColor
 
         let date = days[indexPath.item]
+
         if date == Date.distantPast {
-            cell.configure(day: "", isToday: false, isSelected: false)
+            cell.configure(day: "", isToday: false, isSelected: false, events: nil)
         } else {
-            let day = calendar.component(.day, from: date)
-            let isToday = calendar.isDate(date, inSameDayAs: Date())
+            let isToday = calendar.isDateInToday(date)
             let isSelected = selectedDate != nil && calendar.isDate(date, inSameDayAs: selectedDate!)
-            
-            cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected)
+            let day = calendar.component(.day, from: date)
+            let events = eventsByDate[calendar.startOfDay(for: date)]
+
+            cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected, events: events)
         }
 
         

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import EventKit
 
 class CalendarViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
@@ -22,6 +23,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     var selectedDate: Date?
     var onDateSelected: ((Date) -> Void)?
     
+    var eventsByMonth: [Date: [Date: [EKEvent]]] = [:]  // [월: [날짜: [이벤트]]]
     
     
     // MARK: - View Lifecycle
@@ -34,7 +36,11 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     }
 
     // MARK: - Setup Methods
-
+    func setEvents(for month: Date, events: [Date: [EKEvent]]) {
+        eventsByMonth[Calendar.current.startOfMonth(for: month)] = events
+        collectionView.reloadData()
+    }
+    
     /// 월 데이터 생성 (기준 날짜로부터 과거/미래 포함 총 1000개월)
     func setupMonths() {
         let mid = totalVisible / 2
@@ -78,9 +84,10 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MonthCell", for: indexPath) as! MonthCell
-        let date = visibleMonths[indexPath.item]
-        
-        cell.configure(with: date, selected: selectedDate)
+            let monthDate = visibleMonths[indexPath.item]
+            let events = eventsByMonth[Calendar.current.startOfMonth(for: monthDate)] ?? [:]
+
+            cell.configure(with: monthDate, selected: selectedDate, events: events)
 
         // 콜백으로 SwiftUI까지 전달
         cell.onDateSelected = { [weak self] selected in
@@ -167,5 +174,11 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
 
         let indexPath = IndexPath(item: todayIndex, section: 0)
         collectionView.scrollToItem(at: indexPath, at: .top, animated: true)
+    }
+}
+
+extension Calendar {
+    func startOfMonth(for date: Date) -> Date {
+        return self.date(from: self.dateComponents([.year, .month], from: date))!
     }
 }
