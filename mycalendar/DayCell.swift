@@ -81,6 +81,11 @@ class DayCell: UICollectionViewCell {
         overflowLabel.isHidden = true
         eventStack.addArrangedSubview(overflowLabel)
 
+//        👉 label은 “내 높이는 꼭 지킬게!”
+//        👉 eventStack은 “난 남는 공간 줄게!”
+        label.setContentHuggingPriority(.required, for: .vertical)
+        eventStack.setContentHuggingPriority(.defaultLow, for: .vertical)
+        
         let container = UIStackView(arrangedSubviews: [label, eventStack])
         container.axis = .vertical
         container.spacing = 4

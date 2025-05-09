@@ -72,6 +72,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         collectionView.dataSource = self
         collectionView.delegate = self
+        collectionView.showsVerticalScrollIndicator = false
+        collectionView.scrollsToTop = false
         collectionView.register(MonthCell.self, forCellWithReuseIdentifier: "MonthCell")
         view.addSubview(collectionView)
 
@@ -182,7 +184,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         }) else { return }
 
         let indexPath = IndexPath(item: todayIndex, section: 0)
-        collectionView.scrollToItem(at: indexPath, at: .top, animated: true)
+        collectionView.scrollToItem(at: indexPath, at: .top, animated: false)
     }
     
     // ✅ 2. CalendarViewController에 visibleMonths만 리로드하는 메서드 추가
