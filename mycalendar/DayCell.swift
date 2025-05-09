@@ -99,13 +99,13 @@ class DayCell: UICollectionViewCell {
             return
         }
 
-        for (i, event) in events.prefix(4).enumerated() {
+        for (i, event) in events.prefix(3).enumerated() {
             eventViews[i].dot.backgroundColor = UIColor(cgColor: event.calendar.cgColor) ?? .systemBlue
             eventViews[i].title.text = event.title
             eventStack.arrangedSubviews[i].isHidden = false
         }
 
-        let extra = events.count - 4
+        let extra = events.count - 3
         if extra > 0 {
             overflowLabel.text = "외 \(extra)개"
             overflowLabel.isHidden = false
