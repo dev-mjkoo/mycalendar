@@ -9,6 +9,6 @@ struct CalendarActivityAttributes: ActivityAttributes {
         var weekdayInt: Int
         var fullDate: String
     }
-
+    
     var name: String
 } 
