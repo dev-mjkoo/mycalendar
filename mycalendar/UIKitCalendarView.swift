@@ -10,6 +10,8 @@ import UIKit
 struct UIKitCalendarView: UIViewControllerRepresentable {
     @Binding var currentMonthText: String
     @Binding var scrollToToday: Bool
+    @Binding var selectedDate: Date?
+
     
     // UIKit - swiftui 바인딩
     func makeUIViewController(context: Context) -> CalendarViewController {
@@ -19,6 +21,13 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
                 self.currentMonthText = newText
             }
         }
+        
+        vc.onDateSelected = { date in
+            DispatchQueue.main.async {
+                self.selectedDate = date
+            }
+        }
+        
         return vc
     }
     

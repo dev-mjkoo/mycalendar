@@ -28,6 +28,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     }
     //✅ 1. MonthCell에 선택된 날짜 전달 & 저장
     var selectedDate: Date?
+    var onDateSelected: ((Date) -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -84,11 +85,12 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     // MARK: - 컬렉션 뷰 레이아웃 및 셀 설정
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let selected = days[indexPath.item]
-        guard selected != Date.distantPast else { return }
+        let date = days[indexPath.item]
+        guard date != Date.distantPast else { return }
 
-        selectedDate = selected
-        collectionView.reloadData()  // 전체 리로드 (필요 시 애니메이션 개선 가능)
+        selectedDate = date
+        onDateSelected?(date)
+        collectionView.reloadData()
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -96,6 +98,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "DayCell", for: indexPath) as! DayCell
 
         cell.layer.borderWidth = 0.5
@@ -108,10 +111,11 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             let day = calendar.component(.day, from: date)
             let isToday = calendar.isDate(date, inSameDayAs: Date())
             let isSelected = selectedDate != nil && calendar.isDate(date, inSameDayAs: selectedDate!)
-
+            
             cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected)
         }
 
+        
         return cell
     }
 

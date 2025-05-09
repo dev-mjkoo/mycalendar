@@ -4,6 +4,16 @@
 //
 //  Created by 구민준 on 5/9/25.
 //
+//[DayCell 클릭]
+//     ↓
+//MonthCell.didSelectItemAt
+//     ↓
+//onDateSelected?(date)
+//     ↓
+//CalendarViewController.selectedDate = date
+//     ↓
+//UIKitCalendarView → SwiftUI @Binding selectedDate 업데이트
+//
 
 import UIKit
 

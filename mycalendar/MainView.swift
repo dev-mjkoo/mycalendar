@@ -4,11 +4,23 @@ struct MainView: View {
     @State private var scrollToToday: Bool = false
     @State private var hasAppeared = false //최초 1회만 실행되도록 hasAppeared 플래그 추가
     @State private var currentMonthText: String = "캘린더"
+    @State private var selectedDate: Date? = nil
+
     
     var body: some View {
         VStack(spacing: 0) {
             weekdayHeader
-            UIKitCalendarView(currentMonthText: $currentMonthText, scrollToToday: $scrollToToday)
+            UIKitCalendarView(
+                        currentMonthText: $currentMonthText,
+                        scrollToToday: $scrollToToday,
+                        selectedDate: $selectedDate
+                    )
+            // todo : 나중에 여기서 하단 sheet를 띄워서 일별 상세 보여줘도되겟다..
+            
+//            if let selected = selectedDate {
+//                Text("선택한 날짜: \(selected.formatted(date: .long, time: .omitted))")
+//                    .padding()
+//            }
         }
         .navigationTitle(currentMonthText)
         .toolbar {
@@ -22,6 +34,7 @@ struct MainView: View {
                 }
             }
         }
+        
         .onAppear {
             if !hasAppeared {
                 hasAppeared = true

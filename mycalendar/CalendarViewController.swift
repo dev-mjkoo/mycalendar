@@ -20,6 +20,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     private var lastReportedMonth: String?
     var monthHeights: [IndexPath: CGFloat] = [:]
     var selectedDate: Date?
+    var onDateSelected: ((Date) -> Void)?
+    
     
     
     // MARK: - View Lifecycle
@@ -68,6 +70,7 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     }
 
     // MARK: - Collection View Data Source
+    
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return visibleMonths.count
@@ -76,7 +79,16 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MonthCell", for: indexPath) as! MonthCell
         let date = visibleMonths[indexPath.item]
+        
         cell.configure(with: date, selected: selectedDate)
+
+        // 콜백으로 SwiftUI까지 전달
+        cell.onDateSelected = { [weak self] selected in
+            self?.selectedDate = selected
+            self?.onDateSelected?(selected)
+            collectionView.reloadData() // 선택 상태 반영
+        }
+
         return cell
     }
 
