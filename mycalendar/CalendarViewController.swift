@@ -98,12 +98,12 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
 
             cell.configure(with: monthDate, selected: selectedDate, events: events)
 
-        // 콜백으로 SwiftUI까지 전달
-        cell.onDateSelected = { [weak self] selected in
-            self?.selectedDate = selected
-            self?.onDateSelected?(selected)
-            collectionView.reloadData() // 선택 상태 반영
-        }
+//        // 콜백으로 SwiftUI까지 전달
+//        cell.onDateSelected = { [weak self] selected in
+//            self?.selectedDate = selected
+//            self?.onDateSelected?(selected)
+//            collectionView.reloadData() // 선택 상태 반영
+//        }
 
         return cell
     }
