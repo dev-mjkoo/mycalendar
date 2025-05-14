@@ -100,7 +100,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         var overflowEventsByDay: [Date: [EventBlock]] = [:]
 
         for block in blocks {
-            if block.lineIndex < 2 {
+            if block.lineIndex < CalendarLayout.maxVisibleLines {
                 renderEventBlock(block)
             } else {
                 for day in block.daysBetween() {
@@ -113,7 +113,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             if overflows.count == 1 {
                 let block = overflows.first!
 
-                // ✅ block이 걸치는 모든 day에서 이 block이 유일한지 검사
                 let isSafeToShowDirectly = block.daysBetween().allSatisfy { blockDay in
                     let sameDayOverflows = overflowEventsByDay[blockDay] ?? []
                     return sameDayOverflows.count == 1
@@ -122,12 +121,37 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
                 if isSafeToShowDirectly {
                     renderEventBlock(block)
                 } else {
-                    renderOverflowIndicator(for: day, count: 1)
+                    renderOverflowIndicator(for: day, count: 1, maxVisibleLines: CalendarLayout.maxVisibleLines)
                 }
             } else if overflows.count > 1 {
-                renderOverflowIndicator(for: day, count: overflows.count)
+                renderOverflowIndicator(for: day, count: overflows.count, maxVisibleLines: CalendarLayout.maxVisibleLines)
             }
         }
+    }
+
+    private func renderOverflowIndicator(for day: Date, count: Int, maxVisibleLines: Int) {
+        guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
+
+        let column = dayIndex % 7
+        let row = dayIndex / 7
+
+        let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+        let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+        let blockY = y + CGFloat(maxVisibleLines) * 16 + 2 // ✅ 라인 수 반영
+
+        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - 4
+        let height: CGFloat = 14
+
+        let overflowLabel = UILabel()
+        overflowLabel.text = " 외 \(count)개 "
+        overflowLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        overflowLabel.textColor = .white
+        overflowLabel.backgroundColor = UIColor.gray.withAlphaComponent(0.8)
+        overflowLabel.layer.cornerRadius = 4
+        overflowLabel.clipsToBounds = true
+
+        overflowLabel.frame = CGRect(x: x + 2, y: blockY, width: width, height: height)
+        overlayView.addSubview(overflowLabel)
     }
 
     private func renderEventBlock(_ block: EventBlock) {
@@ -158,7 +182,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         eventView.frame = CGRect(x: startX + 2, y: blockY, width: width, height: height)
         overlayView.addSubview(eventView)
     }
-
+    
     private func renderOverflowIndicator(for day: Date, count: Int) {
         guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
 

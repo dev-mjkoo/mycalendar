@@ -26,7 +26,9 @@ struct RecurrenceRule {
     }
 }
 
-struct Event {
+struct Event: Identifiable {
+    var id: String { ekEvent.eventIdentifier ?? UUID().uuidString }
+
     let ekEvent: EKEvent
     let recurrenceRule: RecurrenceRule?
 

@@ -18,7 +18,7 @@ class DayCell: UICollectionViewCell {
         container.alignment = .fill
         container.distribution = .fill
         container.isLayoutMarginsRelativeArrangement = true
-        container.layoutMargins = UIEdgeInsets(top: 6, left: 0, bottom: 0, right: 0)  // ✅ 원하는 top padding
+        container.layoutMargins = UIEdgeInsets(top: 8, left: 0, bottom: 16, right: 0)  // ✅ 원하는 top padding
 
         contentView.addSubview(container)
         container.frame = contentView.bounds

@@ -58,6 +58,36 @@ class EventKitManager: ObservableObject {
         isCalendarAccessGranted = false
     }
     
+    func events(for day: Date) -> [Event] {
+        let calendar = Calendar.current
+        let startOfMonth = calendar.startOfMonth(for: day)
+        guard let cached = eventCache[startOfMonth] else {
+            log("❗️ [NO CACHE] \(day.formatted(date: .long, time: .omitted))")
+            return []
+        }
+
+        return cached.filter { isEvent($0, on: day, calendar: calendar, monthStart: startOfMonth) }
+    }
+    
+    private func isEvent(_ event: Event, on day: Date, calendar: Calendar, monthStart: Date) -> Bool {
+        let startOfDay = calendar.startOfDay(for: day)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        if let rule = event.recurrenceRule {
+            return event.occurrences(in: monthStart).contains { calendar.isDate($0, inSameDayAs: day) }
+        } else if let start = event.ekEvent.startDate,
+                  let end = event.ekEvent.endDate {
+            // 🔥 하루종일/시간 있는 이벤트 모두 정확히 커버
+            return start < endOfDay && end >= startOfDay
+        } else if let start = event.ekEvent.startDate {
+            return calendar.isDate(start, inSameDayAs: day)
+        } else {
+            return false
+        }
+    }
+    
+    
+    
     /// 🔥 특정 월의 이벤트를 [Event] 형태로 가져오기 (더 이상 그룹화 없음)
     func fetchEvents(for month: Date, completion: @escaping ([Event]) -> Void) {
         guard isCalendarAccessGranted else {
