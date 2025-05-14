@@ -64,14 +64,14 @@ struct MainView: View {
 
             Task {
                 await eventKitManager.checkCalendarAccess()
-                
+
                 if eventKitManager.isCalendarAccessGranted {
-                    EventKitManager.shared.fetchEvents(for: currentMonth) { eventsByDate in
-                        for (date, events) in eventsByDate {
-                            let dateStr = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
-                            log("📅 \(dateStr): \(events.count)개 이벤트")
-                            for event in events {
-                                log("   • \(event.title ?? "(제목 없음)")")
+                    EventKitManager.shared.fetchEvents(for: currentMonth) { events in
+                        for event in events {
+                            let occurrences = event.occurrences(in: currentMonth)
+                            for occurrenceDate in occurrences {
+                                let dateStr = DateFormatter.localizedString(from: occurrenceDate, dateStyle: .short, timeStyle: .none)
+                                log("📅 \(dateStr): \(event.ekEvent.title ?? "(제목 없음)")")
                             }
                         }
                     }

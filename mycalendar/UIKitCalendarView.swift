@@ -23,17 +23,16 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
                 self.currentMonthText = newText
 
                 // ✅ 달이 바뀔 때마다 이벤트 불러오기
-                EventKitManager.shared.fetchEvents(for: monthDate) { eventsByDate in
-                    for (date, events) in eventsByDate {
-                        let dateStr = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none)
-                        log("📅 \(dateStr): \(events.count)개 이벤트")
-                        for event in events.prefix(2) {
-                            log("   • \(event.title ?? "(제목 없음)")")
+                EventKitManager.shared.fetchEvents(for: monthDate) { events in
+                    for event in events {
+                        let occurrences = event.occurrences(in: monthDate)
+                        for occurrenceDate in occurrences {
+                            let dateStr = DateFormatter.localizedString(from: occurrenceDate, dateStyle: .short, timeStyle: .none)
+                            log("📅 \(dateStr): \(event.ekEvent.title ?? "(제목 없음)")")
                         }
                     }
-                    
-                    vc.setEvents(for: monthDate, events: eventsByDate)
 
+                    vc.setEvents(for: monthDate, events: events)
                 }
             }
             

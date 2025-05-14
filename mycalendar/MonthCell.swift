@@ -5,11 +5,12 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
     private let titleLabel = UILabel()
     private var collectionView: UICollectionView!
-    private var overlayView = UIView()  // 🔥 overlayView 추가
+    private var overlayView = UIView()
 
     private var days: [Date] = []
-    private var eventsByDate: [Date: [EKEvent]] = [:]
+    private var events: [Event] = [] // ✅ 변경된 부분
     private let calendar = Calendar.current
+    private var monthDate: Date = Date()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -23,8 +24,9 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with date: Date, selected: Date?, events: [Date: [EKEvent]] = [:]) {
-        self.eventsByDate = events
+    func configure(with date: Date, selected: Date?, events: [Event]) {
+        self.monthDate = date
+        self.events = events
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -33,45 +35,52 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         generateDays(for: date)
         collectionView.reloadData()
-        layoutOverlayEvents()  // 🔥 이벤트 레이아웃 호출
-    }
-
-    private func setupOverlayView() {
-        overlayView.isUserInteractionEnabled = false
-        overlayView.backgroundColor = .clear
-        overlayView.translatesAutoresizingMaskIntoConstraints = false
+        layoutOverlayEvents()
     }
 
     private func layoutOverlayEvents() {
         overlayView.subviews.forEach { $0.removeFromSuperview() }
 
-        var blocks: [EventBlock] = []
         let lineManager = LineManager()
+        var blocks: [EventBlock] = []
 
-        // ✅ 유니크 이벤트 리스트 확보
-        let allEvents = eventsByDate.flatMap { $0.value }
-        let uniqueEvents = Dictionary(grouping: allEvents, by: { $0.eventIdentifier }).compactMap { $0.value.first }
-
-        for event in uniqueEvents
-            .sorted(by: {
-                guard let s1 = $0.startDate, let s2 = $1.startDate else { return false }
-                if s1 != s2 {
-                    return s1 < s2
-                } else {
-                    let duration1 = $0.endDate?.timeIntervalSince($0.startDate ?? Date()) ?? 0
-                    let duration2 = $1.endDate?.timeIntervalSince($1.startDate ?? Date()) ?? 0
-                    return duration1 > duration2
+        for event in events {
+            if let _ = event.recurrenceRule {
+                // 🔥 반복일정 → 발생일마다 adjustedEndDate 적용
+                let occurrences = event.occurrences(in: monthDate)
+                for occurrenceDate in occurrences {
+                    guard let adjustedEndDate = adjustedEndDate(for: event.ekEvent) else { continue }
+                    let slicedBlocks = sliceEventByWeek(event: event.ekEvent, from: occurrenceDate, to: adjustedEndDate)
+                    for block in slicedBlocks {
+                        var mutableBlock = block
+                        mutableBlock.lineIndex = lineManager.assignLineIndex(for: mutableBlock)
+                        blocks.append(mutableBlock)
+                    }
                 }
-            }) {
+            } else {
+                // 🔥 일반 일정 → adjustedEndDate 기준 block
+                guard let start = event.ekEvent.startDate,
+                      let rawEnd = event.ekEvent.endDate,
+                      let adjustedEnd = adjustedEndDate(for: event.ekEvent) else { continue }
 
-            let slicedBlocks = sliceEventByWeek(event: event)
-            for block in slicedBlocks {
-                var mutableBlock = block
-                mutableBlock.lineIndex = lineManager.assignLineIndex(for: block)
-                blocks.append(mutableBlock)
+                let monthStart = calendar.startOfMonth(for: monthDate)
+                let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart)?.addingTimeInterval(-1) ?? monthStart
+
+                if adjustedEnd >= monthStart && start <= monthEnd {
+                    let blockStart = max(start, monthStart)
+                    let blockEnd = min(adjustedEnd, monthEnd)
+
+                    let slicedBlocks = sliceEventByWeek(event: event.ekEvent, from: blockStart, to: blockEnd)
+                    for block in slicedBlocks {
+                        var mutableBlock = block
+                        mutableBlock.lineIndex = lineManager.assignLineIndex(for: mutableBlock)
+                        blocks.append(mutableBlock)
+                    }
+                }
             }
         }
 
+        // ✅ 이후 block 렌더링은 동일 (변경 없음)
         for block in blocks {
             guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
                   let endIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.endDate) }) else { continue }
@@ -103,35 +112,30 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             overlayView.addSubview(eventView)
         }
     }
+    private func adjustedEndDate(for event: EKEvent) -> Date? {
+        guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
 
-    // ✅ 이벤트를 주 단위로 쪼개는 함수
-    private func sliceEventByWeek(event: EKEvent) -> [EventBlock] {
-        guard let startDate = event.startDate, let rawEndDate = event.endDate else {
-            return []
+        let endComponents = calendar.dateComponents(in: TimeZone.current, from: endDate)
+
+        if endComponents.hour == 0 && endComponents.minute == 0 && endComponents.second == 0 {
+            // ✅ 무조건 하루 빼서 23:59:59로 (startDate와 같은 날 여부 무시)
+            let dayBefore = calendar.date(byAdding: .day, value: -1, to: endDate)!
+            return calendar.date(bySettingHour: 23, minute: 59, second: 59, of: dayBefore)
+        } else {
+            return endDate
         }
-
-        // 🔥 로컬 타임존으로 변환해서 정확하게 판단
-        let adjustedEndDate: Date = {
-            let endComponents = calendar.dateComponents(in: TimeZone.current, from: rawEndDate)
-            if endComponents.hour == 0, endComponents.minute == 0, endComponents.second == 0,
-               !calendar.isDate(startDate, inSameDayAs: rawEndDate) {
-                // 하루 빼기
-                return calendar.date(byAdding: .day, value: -1, to: rawEndDate) ?? rawEndDate
-            } else {
-                return rawEndDate
-            }
-        }()
-
+    }
+    private func sliceEventByWeek(event: EKEvent, from startDate: Date, to endDate: Date) -> [EventBlock] {
         var result: [EventBlock] = []
         var currentStart = startDate
 
-        while currentStart <= adjustedEndDate {
+        while currentStart <= endDate {
             guard let weekday = calendar.dateComponents(in: TimeZone.current, from: currentStart).weekday,
                   let weekEnd = calendar.date(byAdding: .day, value: 6 - (weekday - calendar.firstWeekday + 7) % 7, to: currentStart) else {
                 break
             }
 
-            let sliceEnd = min(adjustedEndDate, weekEnd)
+            let sliceEnd = min(endDate, weekEnd)
             result.append(EventBlock(startDate: currentStart, endDate: sliceEnd, event: event))
 
             guard let nextStart = calendar.date(byAdding: .day, value: 1, to: sliceEnd) else { break }
@@ -140,22 +144,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         return result
     }
-    
-    private func adjustedEndDate(for event: EKEvent) -> Date? {
-        guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
-        let components = calendar.dateComponents([.hour, .minute, .second], from: endDate)
-        if components.hour == 0 && components.minute == 0 && components.second == 0 {
-            // 종료일과 시작일이 같은 날이면 그대로 사용
-            if calendar.isDate(startDate, inSameDayAs: endDate) {
-                return endDate
-            } else {
-                // 아니면 하루 빼기
-                return calendar.date(byAdding: .day, value: -1, to: endDate)
-            }
-        } else {
-            return endDate
-        }
-    }
+
     private func generateDays(for date: Date) {
         days.removeAll()
 
@@ -180,6 +169,12 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
+    private func setupOverlayView() {
+        overlayView.isUserInteractionEnabled = false
+        overlayView.backgroundColor = .clear
+        overlayView.translatesAutoresizingMaskIntoConstraints = false
+    }
+
     private func setupCollectionView() {
         let layout = UICollectionViewFlowLayout()
         layout.minimumInteritemSpacing = 0
@@ -197,7 +192,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     private func setupLayout() {
         contentView.addSubview(titleLabel)
         contentView.addSubview(collectionView)
-        contentView.addSubview(overlayView)  // 🔥 overlayView 추가
+        contentView.addSubview(overlayView)
 
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
@@ -214,6 +209,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             overlayView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
         ])
     }
+
+    // MARK: - CollectionViewDataSource
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         days.count
