@@ -78,10 +78,8 @@ struct SettingsView: View {
         } message: {
             Text("설정에서 캘린더 접근을 허용하거나 해제할 수 있습니다.")
         }
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .active {
-                
-                
+        .onChange(of: scenePhase) {
+            if scenePhase == .active {
                 EventKitManager.shared.clearCache()
                 refreshVisibleMonths = true
                 

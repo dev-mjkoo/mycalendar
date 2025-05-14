@@ -20,14 +20,19 @@ class EventKitManager: ObservableObject {
     
     func checkCalendarAccess() async {
         let status = EKEventStore.authorizationStatus(for: .event)
-        isCalendarAccessGranted = (status == .authorized || status == .fullAccess)
+        switch status {
+        case .fullAccess, .writeOnly:
+            isCalendarAccessGranted = true
+        default:
+            isCalendarAccessGranted = false
+        }
     }
     
     func requestAccess() async -> Bool {
         let status = EKEventStore.authorizationStatus(for: .event)
-        
+
         switch status {
-        case .authorized, .fullAccess:
+        case .fullAccess, .writeOnly:
             isCalendarAccessGranted = true
             return true
         case .denied, .restricted:
@@ -35,7 +40,7 @@ class EventKitManager: ObservableObject {
             return false
         case .notDetermined:
             do {
-                let granted = try await eventStore.requestAccess(to: .event)
+                let granted = try await eventStore.requestFullAccessToEvents()
                 isCalendarAccessGranted = granted
                 return granted
             } catch {

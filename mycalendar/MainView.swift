@@ -41,19 +41,15 @@ struct MainView: View {
                 }
             }
         }
-        .onChange(of: scenePhase) { newPhase in
-            
-            
+        .onChange(of: scenePhase) {
             EventKitManager.shared.clearCache()
             refreshVisibleMonths = true
-            if newPhase == .active {
-                
+            if scenePhase == .active {
                 Task {
                     await eventKitManager.checkCalendarAccess()
                 }
             }
-        }
-        
+        }        
         .onAppear {
             if !hasAppeared {
                 hasAppeared = true

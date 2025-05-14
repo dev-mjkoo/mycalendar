@@ -85,7 +85,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         var blocks: [EventBlock] = []
 
-        for (weekStart, weekBlocks) in blocksByWeek {
+        for (_, weekBlocks) in blocksByWeek {
             let lineManager = LineManager()
             let sortedWeekBlocks = weekBlocks.sorted { $0.daysBetween().count > $1.daysBetween().count }
             for block in sortedWeekBlocks {
@@ -183,7 +183,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     }
 
     private func adjustedEndDate(for event: EKEvent) -> Date? {
-        guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
+        guard let _ = event.startDate, let endDate = event.endDate else { return nil }
 
         let endComponents = calendar.dateComponents(in: TimeZone.current, from: endDate)
         if endComponents.hour == 0 && endComponents.minute == 0 && endComponents.second == 0 {
