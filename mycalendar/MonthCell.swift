@@ -8,7 +8,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     private var overlayView = UIView()
 
     private var days: [Date] = []
-    private var events: [Event] = [] // ✅ 변경된 부분
+    private var events: [Event] = []
     private let calendar = Calendar.current
     private var monthDate: Date = Date()
 
@@ -46,7 +46,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         for event in events {
             if let _ = event.recurrenceRule {
-                // 🔥 반복일정 → 발생일마다 adjustedEndDate 적용
                 let occurrences = event.occurrences(in: monthDate)
                 for occurrenceDate in occurrences {
                     guard let adjustedEndDate = adjustedEndDate(for: event.ekEvent) else { continue }
@@ -58,9 +57,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
                     }
                 }
             } else {
-                // 🔥 일반 일정 → adjustedEndDate 기준 block
                 guard let start = event.ekEvent.startDate,
-                      let rawEnd = event.ekEvent.endDate,
                       let adjustedEnd = adjustedEndDate(for: event.ekEvent) else { continue }
 
                 let monthStart = calendar.startOfMonth(for: monthDate)
@@ -80,51 +77,88 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             }
         }
 
-        // ✅ 이후 block 렌더링은 동일 (변경 없음)
+        // 그룹화용 딕셔너리 (lineIndex == 2 이상)
+        var overflowEventsByDay: [Date: [EventBlock]] = [:]
+
         for block in blocks {
-            guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
-                  let endIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.endDate) }) else { continue }
+            if block.lineIndex < 2 {
+                guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
+                      let endIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.endDate) }) else { continue }
 
-            let startColumn = startIndex % 7
-            let startRow = startIndex / 7
-            let endColumn = endIndex % 7
-            let endRow = endIndex / 7
+                let startColumn = startIndex % 7
+                let startRow = startIndex / 7
+                let endColumn = endIndex % 7
+                let endRow = endIndex / 7
 
-            let startX = CGFloat(startColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider)
-            let endX = CGFloat(endColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider) + (bounds.width / CalendarLayout.dayCellWidthDivider)
+                let startX = CGFloat(startColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+                let endX = CGFloat(endColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider) + (bounds.width / CalendarLayout.dayCellWidthDivider)
 
-            let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-            let blockY = startY + CGFloat(block.lineIndex) * 16 + 2
+                let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+                let blockY = startY + CGFloat(block.lineIndex) * 16 + 2
 
-            let width = endX - startX - 4
+                let width = endX - startX - 4
+                let height: CGFloat = 14
+
+                let eventView = UILabel()
+                eventView.text = " \(block.event.title ?? "(제목 없음)") "
+                eventView.font = .systemFont(ofSize: 10, weight: .medium)
+                eventView.textColor = .white
+                eventView.backgroundColor = UIColor(cgColor: block.event.calendar.cgColor).withAlphaComponent(0.8)
+                eventView.layer.cornerRadius = 4
+                eventView.clipsToBounds = true
+
+                eventView.frame = CGRect(x: startX + 2, y: blockY, width: width, height: height)
+                overlayView.addSubview(eventView)
+
+            } else {
+                for day in block.daysBetween() {
+                    if overflowEventsByDay[day] == nil {
+                        overflowEventsByDay[day] = []
+                    }
+                    overflowEventsByDay[day]?.append(block)
+                }
+            }
+        }
+
+        // "외 n개" 렌더링
+        for (day, overflows) in overflowEventsByDay {
+            guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { continue }
+
+            let column = dayIndex % 7
+            let row = dayIndex / 7
+
+            let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+            let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+            let blockY = y + CGFloat(2) * 16 + 2
+
+            let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - 4
             let height: CGFloat = 14
 
-            let eventView = UILabel()
-            eventView.text = " \(block.event.title ?? "(제목 없음)") "
-            eventView.font = .systemFont(ofSize: 10, weight: .medium)
-            eventView.textColor = .white
-            eventView.backgroundColor = UIColor(cgColor: block.event.calendar.cgColor).withAlphaComponent(0.8)
-            eventView.layer.cornerRadius = 4
-            eventView.clipsToBounds = true
+            let overflowLabel = UILabel()
+            overflowLabel.text = " 외 \(overflows.count)개 "
+            overflowLabel.font = .systemFont(ofSize: 10, weight: .medium)
+            overflowLabel.textColor = .white
+            overflowLabel.backgroundColor = UIColor.gray.withAlphaComponent(0.8)
+            overflowLabel.layer.cornerRadius = 4
+            overflowLabel.clipsToBounds = true
 
-            eventView.frame = CGRect(x: startX + 2, y: blockY, width: width, height: height)
-
-            overlayView.addSubview(eventView)
+            overflowLabel.frame = CGRect(x: x + 2, y: blockY, width: width, height: height)
+            overlayView.addSubview(overflowLabel)
         }
     }
+
     private func adjustedEndDate(for event: EKEvent) -> Date? {
         guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
 
         let endComponents = calendar.dateComponents(in: TimeZone.current, from: endDate)
-
         if endComponents.hour == 0 && endComponents.minute == 0 && endComponents.second == 0 {
-            // ✅ 무조건 하루 빼서 23:59:59로 (startDate와 같은 날 여부 무시)
             let dayBefore = calendar.date(byAdding: .day, value: -1, to: endDate)!
             return calendar.date(bySettingHour: 23, minute: 59, second: 59, of: dayBefore)
         } else {
             return endDate
         }
     }
+
     private func sliceEventByWeek(event: EKEvent, from startDate: Date, to endDate: Date) -> [EventBlock] {
         var result: [EventBlock] = []
         var currentStart = startDate
