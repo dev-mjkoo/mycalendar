@@ -113,16 +113,6 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         return Int(ceil(Double(totalDays) / 7.0))
     }
 
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        updateCurrentMonth()
-    }
-
-    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        if !decelerate {
-            updateCurrentMonth()
-        }
-    }
-
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         updateCurrentMonth()
 
