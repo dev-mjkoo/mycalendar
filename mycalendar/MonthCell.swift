@@ -108,7 +108,23 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         }
 
         for (day, overflows) in overflowEventsByDay {
-            renderOverflowIndicator(for: day, count: overflows.count)
+            if overflows.count == 1 {
+                let block = overflows.first!
+
+                // ✅ block이 걸치는 모든 day에서 이 block이 유일한지 검사
+                let isSafeToShowDirectly = block.daysBetween().allSatisfy { blockDay in
+                    let sameDayOverflows = overflowEventsByDay[blockDay] ?? []
+                    return sameDayOverflows.count == 1
+                }
+
+                if isSafeToShowDirectly {
+                    renderEventBlock(block)
+                } else {
+                    renderOverflowIndicator(for: day, count: 1)
+                }
+            } else if overflows.count > 1 {
+                renderOverflowIndicator(for: day, count: overflows.count)
+            }
         }
     }
 
