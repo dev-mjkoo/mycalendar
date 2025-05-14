@@ -76,6 +76,9 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         let monthDate = visibleMonths[indexPath.item]
         let events = eventsByMonth[calendar.startOfMonth(for: monthDate)] ?? []
         cell.configure(with: monthDate, selected: selectedDate, events: events)
+        cell.onDateSelected = { [weak self] date in
+            self?.onDateSelected?(date)
+        }
         return cell
     }
 

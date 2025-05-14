@@ -19,6 +19,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     private var events: [Event] = []
     private let calendar = Calendar.current
     private var monthDate: Date = Date()
+    
+    var onDateSelected: ((Date) -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -296,5 +298,12 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let width = collectionView.bounds.width / CalendarLayout.dayCellWidthDivider
         return CGSize(width: width, height: CalendarLayout.dayCellHeight)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let date = days[indexPath.item]
+        if date != Date.distantPast {
+            onDateSelected?(date)
+        }
     }
 }
