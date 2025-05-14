@@ -9,7 +9,7 @@ import UIKit
 
 struct CalendarLayout {
     /// 요일 셀 하나의 높이 (정사각형 기준)
-    static let dayCellHeight: CGFloat = 90
+    static let dayCellHeight: CGFloat = 64
     
     /// 요일 셀 하나의 너비 계산용 분모 (보통 7일)
     static let dayCellWidthDivider: CGFloat = 7
