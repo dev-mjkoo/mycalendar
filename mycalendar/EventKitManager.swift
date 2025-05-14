@@ -82,7 +82,7 @@ class EventKitManager: ObservableObject {
         let startOfDay = calendar.startOfDay(for: day)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
-        if let rule = event.recurrenceRule {
+        if let _ = event.recurrenceRule {
             return event.occurrences(in: monthStart).contains { calendar.isDate($0, inSameDayAs: day) }
         } else if let start = event.ekEvent.startDate,
                   let end = event.ekEvent.endDate {
