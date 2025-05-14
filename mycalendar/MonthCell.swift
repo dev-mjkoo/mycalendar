@@ -1,6 +1,14 @@
 import UIKit
 import EventKit
 
+extension Calendar {
+    func startOfWeek(for date: Date) -> Date {
+        let weekday = component(.weekday, from: date)
+        let daysToSubtract = weekday - 1
+        return self.date(byAdding: .day, value: -daysToSubtract, to: startOfDay(for: date))!
+    }
+}
+
 class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
     private let titleLabel = UILabel()
@@ -41,19 +49,16 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     private func layoutOverlayEvents() {
         overlayView.subviews.forEach { $0.removeFromSuperview() }
 
-        let lineManager = LineManager()
-        var blocks: [EventBlock] = []
+        var blocksByWeek: [Date: [EventBlock]] = [:]
 
         for event in events {
+            let slices: [EventBlock]
             if let _ = event.recurrenceRule {
-                let occurrences = event.occurrences(in: monthDate)
-                for occurrenceDate in occurrences {
-                    guard let adjustedEndDate = adjustedEndDate(for: event.ekEvent) else { continue }
-                    let slicedBlocks = sliceEventByWeek(event: event.ekEvent, from: occurrenceDate, to: adjustedEndDate)
-                    for block in slicedBlocks {
-                        var mutableBlock = block
-                        mutableBlock.lineIndex = lineManager.assignLineIndex(for: mutableBlock)
-                        blocks.append(mutableBlock)
+                slices = event.occurrences(in: monthDate).flatMap { occurrenceDate -> [EventBlock] in
+                    if let adjustedEndDate = adjustedEndDate(for: event.ekEvent) {
+                        return sliceEventByWeek(event: event.ekEvent, from: occurrenceDate, to: adjustedEndDate)
+                    } else {
+                        return []
                     }
                 }
             } else {
@@ -66,85 +71,99 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
                 if adjustedEnd >= monthStart && start <= monthEnd {
                     let blockStart = max(start, monthStart)
                     let blockEnd = min(adjustedEnd, monthEnd)
-
-                    let slicedBlocks = sliceEventByWeek(event: event.ekEvent, from: blockStart, to: blockEnd)
-                    for block in slicedBlocks {
-                        var mutableBlock = block
-                        mutableBlock.lineIndex = lineManager.assignLineIndex(for: mutableBlock)
-                        blocks.append(mutableBlock)
-                    }
+                    slices = sliceEventByWeek(event: event.ekEvent, from: blockStart, to: blockEnd)
+                } else {
+                    continue
                 }
+            }
+
+            for block in slices {
+                let weekStart = calendar.startOfWeek(for: block.startDate)
+                blocksByWeek[weekStart, default: []].append(block)
             }
         }
 
-        // 그룹화용 딕셔너리 (lineIndex == 2 이상)
+        var blocks: [EventBlock] = []
+
+        for (weekStart, weekBlocks) in blocksByWeek {
+            let lineManager = LineManager()
+            let sortedWeekBlocks = weekBlocks.sorted { $0.daysBetween().count > $1.daysBetween().count }
+            for block in sortedWeekBlocks {
+                var mutableBlock = block
+                mutableBlock.lineIndex = lineManager.assignLineIndex(for: mutableBlock)
+                blocks.append(mutableBlock)
+            }
+        }
+
         var overflowEventsByDay: [Date: [EventBlock]] = [:]
 
         for block in blocks {
             if block.lineIndex < 2 {
-                guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
-                      let endIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.endDate) }) else { continue }
-
-                let startColumn = startIndex % 7
-                let startRow = startIndex / 7
-                let endColumn = endIndex % 7
-                let endRow = endIndex / 7
-
-                let startX = CGFloat(startColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider)
-                let endX = CGFloat(endColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider) + (bounds.width / CalendarLayout.dayCellWidthDivider)
-
-                let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-                let blockY = startY + CGFloat(block.lineIndex) * 16 + 2
-
-                let width = endX - startX - 4
-                let height: CGFloat = 14
-
-                let eventView = UILabel()
-                eventView.text = " \(block.event.title ?? "(제목 없음)") "
-                eventView.font = .systemFont(ofSize: 10, weight: .medium)
-                eventView.textColor = .white
-                eventView.backgroundColor = UIColor(cgColor: block.event.calendar.cgColor).withAlphaComponent(0.8)
-                eventView.layer.cornerRadius = 4
-                eventView.clipsToBounds = true
-
-                eventView.frame = CGRect(x: startX + 2, y: blockY, width: width, height: height)
-                overlayView.addSubview(eventView)
-
+                renderEventBlock(block)
             } else {
                 for day in block.daysBetween() {
-                    if overflowEventsByDay[day] == nil {
-                        overflowEventsByDay[day] = []
-                    }
-                    overflowEventsByDay[day]?.append(block)
+                    overflowEventsByDay[day, default: []].append(block)
                 }
             }
         }
 
-        // "외 n개" 렌더링
         for (day, overflows) in overflowEventsByDay {
-            guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { continue }
-
-            let column = dayIndex % 7
-            let row = dayIndex / 7
-
-            let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
-            let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-            let blockY = y + CGFloat(2) * 16 + 2
-
-            let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - 4
-            let height: CGFloat = 14
-
-            let overflowLabel = UILabel()
-            overflowLabel.text = " 외 \(overflows.count)개 "
-            overflowLabel.font = .systemFont(ofSize: 10, weight: .medium)
-            overflowLabel.textColor = .white
-            overflowLabel.backgroundColor = UIColor.gray.withAlphaComponent(0.8)
-            overflowLabel.layer.cornerRadius = 4
-            overflowLabel.clipsToBounds = true
-
-            overflowLabel.frame = CGRect(x: x + 2, y: blockY, width: width, height: height)
-            overlayView.addSubview(overflowLabel)
+            renderOverflowIndicator(for: day, count: overflows.count)
         }
+    }
+
+    private func renderEventBlock(_ block: EventBlock) {
+        guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
+              let endIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.endDate) }) else { return }
+
+        let startColumn = startIndex % 7
+        let startRow = startIndex / 7
+        let endColumn = endIndex % 7
+
+        let startX = CGFloat(startColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+        let endX = CGFloat(endColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider) + (bounds.width / CalendarLayout.dayCellWidthDivider)
+
+        let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+        let blockY = startY + CGFloat(block.lineIndex) * 16 + 2
+
+        let width = endX - startX - 4
+        let height: CGFloat = 14
+
+        let eventView = UILabel()
+        eventView.text = " \(block.event.title ?? "(제목 없음)") "
+        eventView.font = .systemFont(ofSize: 10, weight: .medium)
+        eventView.textColor = .white
+        eventView.backgroundColor = UIColor(cgColor: block.event.calendar.cgColor).withAlphaComponent(0.8)
+        eventView.layer.cornerRadius = 4
+        eventView.clipsToBounds = true
+
+        eventView.frame = CGRect(x: startX + 2, y: blockY, width: width, height: height)
+        overlayView.addSubview(eventView)
+    }
+
+    private func renderOverflowIndicator(for day: Date, count: Int) {
+        guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
+
+        let column = dayIndex % 7
+        let row = dayIndex / 7
+
+        let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+        let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+        let blockY = y + CGFloat(2) * 16 + 2
+
+        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - 4
+        let height: CGFloat = 14
+
+        let overflowLabel = UILabel()
+        overflowLabel.text = " 외 \(count)개 "
+        overflowLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        overflowLabel.textColor = .white
+        overflowLabel.backgroundColor = UIColor.gray.withAlphaComponent(0.8)
+        overflowLabel.layer.cornerRadius = 4
+        overflowLabel.clipsToBounds = true
+
+        overflowLabel.frame = CGRect(x: x + 2, y: blockY, width: width, height: height)
+        overlayView.addSubview(overflowLabel)
     }
 
     private func adjustedEndDate(for event: EKEvent) -> Date? {
@@ -164,14 +183,9 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         var currentStart = startDate
 
         while currentStart <= endDate {
-            guard let weekday = calendar.dateComponents(in: TimeZone.current, from: currentStart).weekday,
-                  let weekEnd = calendar.date(byAdding: .day, value: 6 - (weekday - calendar.firstWeekday + 7) % 7, to: currentStart) else {
-                break
-            }
-
+            guard let weekEnd = calendar.date(byAdding: .day, value: 6 - ((calendar.component(.weekday, from: currentStart) - 1) % 7), to: currentStart) else { break }
             let sliceEnd = min(endDate, weekEnd)
             result.append(EventBlock(startDate: currentStart, endDate: sliceEnd, event: event))
-
             guard let nextStart = calendar.date(byAdding: .day, value: 1, to: sliceEnd) else { break }
             currentStart = nextStart
         }
@@ -243,8 +257,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             overlayView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
         ])
     }
-
-    // MARK: - CollectionViewDataSource
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         days.count
