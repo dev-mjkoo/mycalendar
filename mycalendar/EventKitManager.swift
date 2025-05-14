@@ -61,12 +61,21 @@ class EventKitManager: ObservableObject {
     func events(for day: Date) -> [Event] {
         let calendar = Calendar.current
         let startOfMonth = calendar.startOfMonth(for: day)
-        guard let cached = eventCache[startOfMonth] else {
-            log("❗️ [NO CACHE] \(day.formatted(date: .long, time: .omitted))")
+
+        // ✅ 캐시 없으면 바로 fetch 걸고 빈 리스트 리턴 (자동 선행)
+        if eventCache[startOfMonth] == nil {
+            log("⚡️ [AUTO FETCH ON DEMAND] \(startOfMonth.formatted(date: .long, time: .omitted))")
+            fetchEvents(for: startOfMonth) { events in
+                log("✅ [FETCH DONE] \(startOfMonth.formatted(date: .long, time: .omitted))")
+                // 필요하다면 NotificationCenter 등으로 UI 리프레시 트리거
+            }
+            // ❗️ 당장 빈 리스트 리턴하더라도, 다음 클릭 시에는 뜸
             return []
         }
 
-        return cached.filter { isEvent($0, on: day, calendar: calendar, monthStart: startOfMonth) }
+        return eventCache[startOfMonth]!.filter {
+            isEvent($0, on: day, calendar: calendar, monthStart: startOfMonth)
+        }
     }
     
     private func isEvent(_ event: Event, on day: Date, calendar: Calendar, monthStart: Date) -> Bool {
