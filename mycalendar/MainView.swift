@@ -1,5 +1,6 @@
 import SwiftUI
 import EventKit
+import FloatingPanel
 
 struct MainView: View {
     @State private var scrollToToday: Bool = false
@@ -11,27 +12,52 @@ struct MainView: View {
     @State private var currentMonth = Date()
     @Environment(\.scenePhase) private var scenePhase
     @State private var refreshVisibleMonths: Bool = false
-
+    
+    
+    @State private var panelLayout: FloatingPanelLayout? = MyFloatingPanelLayout()
+    @State private var panelState: FloatingPanelState?
+    @State private var panelDate = Date()
+    
+    
     var body: some View {
-        VStack(spacing: 0) {
-            weekdayHeader
-            UIKitCalendarView(
-                currentMonthText: $currentMonthText,
-                scrollToToday: $scrollToToday,
-                selectedDate: $selectedDate,
-                refreshVisibleMonths: $refreshVisibleMonths
-            )
+        ZStack {
+            VStack(spacing: 0) {
+                weekdayHeader
+                UIKitCalendarView(
+                    currentMonthText: $currentMonthText,
+                    scrollToToday: $scrollToToday,
+                    selectedDate: $selectedDate,
+                    refreshVisibleMonths: $refreshVisibleMonths
+                )
+            }
         }
+//        .ignoresSafeArea()
+        .floatingPanel(
+            coordinator: MyPanelCoordinator.self
+        ) { proxy in
+            DailyEventSheetView(proxy: proxy, date: $panelDate)
+        }
+//        .floatingPanelSurfaceAppearance(.transparent())
+        .floatingPanelLayout(panelLayout)
+        .floatingPanelState($panelState)
+        
         .navigationTitle(currentMonthText)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button("오늘") {
                     scrollToToday.toggle()
                 }
-
+                
                 NavigationLink(destination: SettingsView()) {
                     Image(systemName: "gear")
                 }
+            }
+        }
+        .onChange(of: selectedDate) { newValue in
+            log("📅 selectedDate 변경됨: \(String(describing: newValue))")
+            if let newValue {
+                panelDate = newValue
+                panelState = .half
             }
         }
         .onChange(of: scenePhase) {
@@ -50,10 +76,10 @@ struct MainView: View {
                     scrollToToday = true
                 }
             }
-
+            
             Task {
                 await eventKitManager.checkCalendarAccess()
-
+                
                 if eventKitManager.isCalendarAccessGranted {
                     EventKitManager.shared.fetchEvents(for: currentMonth) { events in
                         for event in events {
@@ -69,11 +95,8 @@ struct MainView: View {
                 }
             }
         }
-        .sheet(item: $selectedDate) { date in
-            DailyEventSheetView(date: date)
-        }
     }
-
+    
     var weekdayHeader: some View {
         HStack {
             ForEach(["일", "월", "화", "수", "목", "금", "토"], id: \.self) { day in
@@ -87,7 +110,9 @@ struct MainView: View {
 }
 
 struct DailyEventSheetView: View {
-    var date: Date
+    let proxy: FloatingPanelProxy
+    @Binding var date: Date
+
     @State private var events: [Event] = []
     
     var body: some View {
@@ -118,8 +143,15 @@ struct DailyEventSheetView: View {
         }
         .presentationDetents([.medium, .large])
         .onAppear {
-            events = EventKitManager.shared.events(for: date)
-            log("📅 \(date.formatted(date: .long, time: .omitted)) -> \(events.count)개 이벤트")
+            loadEvents()
         }
+        .onChange(of: date) { _ in
+            loadEvents()
+        }
+    }
+    
+    private func loadEvents() {
+        events = EventKitManager.shared.events(for: date)
+        log("📅 \(date.formatted(date: .long, time: .omitted)) -> \(events.count)개 이벤트")
     }
 }
