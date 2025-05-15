@@ -16,11 +16,25 @@ struct MainView: View {
     
     @State private var panelLayout: FloatingPanelLayout? = MyFloatingPanelLayout()
     @State private var panelState: FloatingPanelState?
-    @StateObject private var eventSheetViewModel = DailyEventSheetViewModel(initialDate: Date())
-
+    @StateObject private var eventSheetViewModel = DailyEventSheetViewModel()
+    @State private var showPanel = false
+    @State private var showSettings = false
+    
+    
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
+                CustomHeaderView(
+                    currentMonthText: $currentMonthText,
+                    onTodayTap: {
+                        scrollToToday.toggle()
+                    },
+                    onSettingsTap: {
+                        showSettings = true
+                        log("⚙️ 설정 버튼 눌림")
+                    }
+                )
+                
                 weekdayHeader
                 UIKitCalendarView(
                     currentMonthText: $currentMonthText,
@@ -29,41 +43,35 @@ struct MainView: View {
                     refreshVisibleMonths: $refreshVisibleMonths,
                     onScroll: {
                         log("📱 CalendarView 스크롤 시작됨 -> 패널 TIP으로")
-                        withAnimation(.easeOut(duration: 0.1)) {
-                            panelState = .tip
-                        }
+                        //                        withAnimation(.easeOut(duration: 0.1)) {
+                        //                            panelState = .tip
+                        //                        }
                     }
                 )
             }
         }
-        //        .ignoresSafeArea()
+        
         .floatingPanel(
             coordinator: MyPanelCoordinator.self
         ) { proxy in
-            DailyEventSheetView(proxy: proxy, viewModel: eventSheetViewModel)
+            DailyEventSheetView(
+                proxy: proxy,
+                viewModel: eventSheetViewModel,
+                refreshTrigger: $refreshVisibleMonths
+            )
         }
-        //        .floatingPanelSurfaceAppearance(.transparent())
         .floatingPanelLayout(panelLayout)
         .floatingPanelState($panelState)
-        
-        .navigationTitle(currentMonthText)
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button("오늘") {
-                    scrollToToday.toggle()
-                }
-                
-                NavigationLink(destination: SettingsView()) {
-                    Image(systemName: "gear")
-                }
-            }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .presentationDetents([.medium, .large]) // 💡 iOS 16+이면 높이 제어 가능
         }
-        
         .onChange(of: selectedDate) { newValue in
-            if let newValue {
-                eventSheetViewModel.date = newValue
+            if let date = newValue {
+                eventSheetViewModel.setDate(date) // ✅ 메서드를 통해서 안전하게 변경
+                
                 withAnimation(.easeOut(duration: 0.1)) {
-                    panelState = .half
+                    panelState = panelState
                 }
             }
         }
@@ -73,6 +81,13 @@ struct MainView: View {
             EventKitManager.shared.clearCache()
             refreshVisibleMonths = true
             if scenePhase == .active {
+                Task {
+                    await eventKitManager.checkCalendarAccess()
+                }
+            }
+        }
+        .onChange(of: scenePhase) { newValue in
+            if newValue == .active {
                 Task {
                     await eventKitManager.checkCalendarAccess()
                 }
@@ -99,6 +114,11 @@ struct MainView: View {
                             }
                         }
                     }
+                    await MainActor.run {
+                        selectedDate = Date()
+                        eventSheetViewModel.setDate(selectedDate!) // ✅ 안전하게 date 변경 및 이벤트 로딩
+                        panelState = .tip
+                    }
                 } else {
                     log("❗️캘린더 권한이 없어서 이벤트를 불러올 수 없음")
                 }
@@ -121,67 +141,80 @@ struct MainView: View {
 struct DailyEventSheetView: View {
     let proxy: FloatingPanelProxy
     @ObservedObject var viewModel: DailyEventSheetViewModel
-
+    @Binding var refreshTrigger: Bool
+    
+    
+    @State private var contentHeight: CGFloat = 0
+    @State private var availableHeight: CGFloat = 0
+    
     var body: some View {
         VStack {
             Text(viewModel.date.formatted(date: .long, time: .omitted))
                 .font(.title)
                 .padding()
-
+            
             if viewModel.events.isEmpty {
-                Text("이벤트 없음")
-                    .foregroundColor(.gray)
-                    .padding()
+                EmptyView()
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(viewModel.events) { event in
-                            VStack(alignment: .leading) {
-                                Text(event.ekEvent.title ?? "(제목 없음)")
-                                    .font(.headline)
-                                if let startDate = event.ekEvent.startDate {
-                                    Text(startDate.formatted(date: .omitted, time: .shortened))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                GeometryReader { geo in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(viewModel.events) { event in
+                                VStack(alignment: .leading) {
+                                    Text(event.ekEvent.title ?? "(제목 없음)")
+                                        .font(.headline)
+                                    if let startDate = event.ekEvent.startDate {
+                                        Text(startDate.formatted(date: .omitted, time: .shortened))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal)
                         }
+                        .background(
+                            GeometryReader { contentGeo in
+                                Color.clear
+                                    .onAppear {
+                                        contentHeight = contentGeo.size.height
+                                        availableHeight = geo.size.height
+                                    }
+                                    .onChange(of: viewModel.events.count) { _ in
+                                        contentHeight = contentGeo.size.height
+                                        availableHeight = geo.size.height
+                                    }
+                            }
+                        )
+                        .padding(.bottom, 32)
                     }
-                    .padding(.bottom, 32)
+                    .scrollIndicators(.hidden)
+                    .disabled(contentHeight <= geo.size.height) // ✅ 여기서 자동 스크롤 on/off
                 }
             }
-
+            
             Spacer(minLength: 0)
         }
         .presentationDetents([.medium, .large])
     }
 }
 
-
-
 class DailyEventSheetViewModel: ObservableObject {
-    @Published var date: Date {
-        didSet {
-            Task { @MainActor in
-                loadEvents(for: date)
-            }
-        }
-    }
-
+    @Published private(set) var date: Date = Date()
     @Published var events: [Event] = []
-
-    init(initialDate: Date) {
-        self.date = initialDate
-        Task { @MainActor in
-            loadEvents(for: initialDate)
-        }
+    
+    @MainActor
+    func setDate(_ newDate: Date) {
+        self.date = newDate
+        loadEvents(for: newDate)
     }
-
+    
     @MainActor
     private func loadEvents(for date: Date) {
         events = EventKitManager.shared.events(for: date)
         log("📅 [ViewModel] \(date.formatted(date: .long, time: .omitted)) -> \(events.count)개 이벤트")
     }
+    
+    // todo : 나중에 ekevent를 notificationcenter를 통해서 가져오면 그떈 바뀔때 여기도 reload되게하기
+    
 }
- 
+

@@ -18,6 +18,8 @@ class EventKitManager: ObservableObject {
         }
     }
     
+    // todo : ekevent를 notificationceneter를 이용해서 바뀔 때만 reload하게 하기 (그러면 daily~~view도 같이 업뎃 될듯)
+    
     func checkCalendarAccess() async {
         let status = EKEventStore.authorizationStatus(for: .event)
         switch status {
