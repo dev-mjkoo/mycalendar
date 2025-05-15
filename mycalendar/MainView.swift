@@ -79,10 +79,6 @@ struct MainView: View {
             .onChange(of: selectedDate) { newValue in
                 if let date = newValue {
                     eventSheetViewModel.setDate(date) // ✅ 메서드를 통해서 안전하게 변경
-                    
-                    withAnimation(.easeOut(duration: 0.1)) {
-                        panelState = panelState
-                    }
                 }
             }
             .onChange(of: scenePhase) {
