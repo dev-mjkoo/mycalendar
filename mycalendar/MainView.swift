@@ -16,9 +16,8 @@ struct MainView: View {
     
     @State private var panelLayout: FloatingPanelLayout? = MyFloatingPanelLayout()
     @State private var panelState: FloatingPanelState?
-    @State private var panelDate = Date()
-    
-    
+    @StateObject private var eventSheetViewModel = DailyEventSheetViewModel(initialDate: Date())
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -27,17 +26,23 @@ struct MainView: View {
                     currentMonthText: $currentMonthText,
                     scrollToToday: $scrollToToday,
                     selectedDate: $selectedDate,
-                    refreshVisibleMonths: $refreshVisibleMonths
+                    refreshVisibleMonths: $refreshVisibleMonths,
+                    onScroll: {
+                        log("📱 CalendarView 스크롤 시작됨 -> 패널 TIP으로")
+                        withAnimation(.easeOut(duration: 0.1)) {
+                            panelState = .tip
+                        }
+                    }
                 )
             }
         }
-//        .ignoresSafeArea()
+        //        .ignoresSafeArea()
         .floatingPanel(
             coordinator: MyPanelCoordinator.self
         ) { proxy in
-            DailyEventSheetView(proxy: proxy, date: $panelDate)
+            DailyEventSheetView(proxy: proxy, viewModel: eventSheetViewModel)
         }
-//        .floatingPanelSurfaceAppearance(.transparent())
+        //        .floatingPanelSurfaceAppearance(.transparent())
         .floatingPanelLayout(panelLayout)
         .floatingPanelState($panelState)
         
@@ -53,13 +58,17 @@ struct MainView: View {
                 }
             }
         }
+        
         .onChange(of: selectedDate) { newValue in
-            log("📅 selectedDate 변경됨: \(String(describing: newValue))")
             if let newValue {
-                panelDate = newValue
-                panelState = .half
+                eventSheetViewModel.date = newValue
+                withAnimation(.easeOut(duration: 0.1)) {
+                    panelState = .half
+                }
             }
         }
+        
+        
         .onChange(of: scenePhase) {
             EventKitManager.shared.clearCache()
             refreshVisibleMonths = true
@@ -111,47 +120,68 @@ struct MainView: View {
 
 struct DailyEventSheetView: View {
     let proxy: FloatingPanelProxy
-    @Binding var date: Date
+    @ObservedObject var viewModel: DailyEventSheetViewModel
 
-    @State private var events: [Event] = []
-    
     var body: some View {
         VStack {
-            Text(date.formatted(date: .long, time: .omitted))
+            Text(viewModel.date.formatted(date: .long, time: .omitted))
                 .font(.title)
                 .padding()
-            
-            if events.isEmpty {
+
+            if viewModel.events.isEmpty {
                 Text("이벤트 없음")
                     .foregroundColor(.gray)
                     .padding()
             } else {
-                List(events) { event in
-                    VStack(alignment: .leading) {
-                        Text(event.ekEvent.title ?? "(제목 없음)")
-                            .font(.headline)
-                        if let startDate = event.ekEvent.startDate {
-                            Text(startDate.formatted(date: .omitted, time: .shortened))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 8) {
+                        ForEach(viewModel.events) { event in
+                            VStack(alignment: .leading) {
+                                Text(event.ekEvent.title ?? "(제목 없음)")
+                                    .font(.headline)
+                                if let startDate = event.ekEvent.startDate {
+                                    Text(startDate.formatted(date: .omitted, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.horizontal)
                         }
                     }
+                    .padding(.bottom, 32)
                 }
             }
-            
-            Spacer()
+
+            Spacer(minLength: 0)
         }
         .presentationDetents([.medium, .large])
-        .onAppear {
-            loadEvents()
-        }
-        .onChange(of: date) { _ in
-            loadEvents()
-        }
-    }
-    
-    private func loadEvents() {
-        events = EventKitManager.shared.events(for: date)
-        log("📅 \(date.formatted(date: .long, time: .omitted)) -> \(events.count)개 이벤트")
     }
 }
+
+
+
+class DailyEventSheetViewModel: ObservableObject {
+    @Published var date: Date {
+        didSet {
+            Task { @MainActor in
+                loadEvents(for: date)
+            }
+        }
+    }
+
+    @Published var events: [Event] = []
+
+    init(initialDate: Date) {
+        self.date = initialDate
+        Task { @MainActor in
+            loadEvents(for: initialDate)
+        }
+    }
+
+    @MainActor
+    private func loadEvents(for date: Date) {
+        events = EventKitManager.shared.events(for: date)
+        log("📅 [ViewModel] \(date.formatted(date: .long, time: .omitted)) -> \(events.count)개 이벤트")
+    }
+}
+ 

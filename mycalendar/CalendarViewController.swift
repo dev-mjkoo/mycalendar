@@ -17,6 +17,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
     var eventsByMonth: [Date: [Event]] = [:]  // ✅ Event 모델 사용
 
     private var preloadWorkItem: DispatchWorkItem?
+    var onScroll: (() -> Void)? = nil
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -206,5 +208,11 @@ extension CalendarViewController: UICollectionViewDataSourcePrefetching {
                 }
             }
         }
+    }
+}
+
+extension CalendarViewController: UIScrollViewDelegate {
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        onScroll?()
     }
 }

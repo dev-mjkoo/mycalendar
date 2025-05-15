@@ -12,6 +12,7 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
     @Binding var scrollToToday: Bool
     @Binding var selectedDate: Date?
     @Binding var refreshVisibleMonths: Bool
+    var onScroll: (() -> Void)? = nil
 
 
     
@@ -35,10 +36,8 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
                     vc.setEvents(for: monthDate, events: events)
                 }
             }
-            
         }
-        
-        
+        vc.onScroll = onScroll
         vc.onDateSelected = { date in
             DispatchQueue.main.async {
                 self.selectedDate = date
