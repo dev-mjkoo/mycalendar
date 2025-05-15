@@ -15,114 +15,125 @@ struct MainView: View {
     
     
     @State private var panelLayout: FloatingPanelLayout? = MyFloatingPanelLayout()
-    @State private var panelState: FloatingPanelState?
+    @State private var panelState: FloatingPanelState? = .tip
     @StateObject private var eventSheetViewModel = DailyEventSheetViewModel()
     @State private var showPanel = false
     @State private var showSettings = false
     
     
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                CustomHeaderView(
-                    currentMonthText: $currentMonthText,
-                    onTodayTap: {
-                        scrollToToday.toggle()
-                    },
-                    onSettingsTap: {
-                        showSettings = true
-                        log("⚙️ 설정 버튼 눌림")
-                    }
-                )
-                
-                weekdayHeader
-                UIKitCalendarView(
-                    currentMonthText: $currentMonthText,
-                    scrollToToday: $scrollToToday,
-                    selectedDate: $selectedDate,
-                    refreshVisibleMonths: $refreshVisibleMonths,
-                    onScroll: {
-                        log("📱 CalendarView 스크롤 시작됨 -> 패널 TIP으로")
-                        //                        withAnimation(.easeOut(duration: 0.1)) {
-                        //                            panelState = .tip
-                        //                        }
-                    }
+        VStack {
+            ZStack {
+                VStack(spacing: 0) {
+                    CustomHeaderView(
+                        currentMonthText: $currentMonthText,
+                        onTodayTap: {
+                            scrollToToday.toggle()
+                        },
+                        onSettingsTap: {
+                            showSettings = true
+                            log("⚙️ 설정 버튼 눌림")
+                        }
+                    )
+                    
+                    weekdayHeader
+                    UIKitCalendarView(
+                        currentMonthText: $currentMonthText,
+                        scrollToToday: $scrollToToday,
+                        selectedDate: $selectedDate,
+                        refreshVisibleMonths: $refreshVisibleMonths,
+                        onScroll: {
+                            log("📱 CalendarView 스크롤 시작됨 -> 패널 TIP으로")
+                            //                        withAnimation(.easeOut(duration: 0.1)) {
+                            //                            panelState = .tip
+                            //                        }
+                        }
+                    )
+                }
+            }
+            .floatingPanel(
+                coordinator: MyPanelCoordinator.self
+            ) { proxy in
+                DailyEventSheetView(
+                    proxy: proxy,
+                    viewModel: eventSheetViewModel,
+                    refreshTrigger: $refreshVisibleMonths
                 )
             }
-        }
-        
-        .floatingPanel(
-            coordinator: MyPanelCoordinator.self
-        ) { proxy in
-            DailyEventSheetView(
-                proxy: proxy,
-                viewModel: eventSheetViewModel,
-                refreshTrigger: $refreshVisibleMonths
+            
+            .floatingPanelSurfaceAppearance(
+                {
+                    let appearance = SurfaceAppearance()
+                    appearance.cornerRadius = 24
+                    appearance.backgroundColor = .secondarySystemBackground
+                    return appearance
+                }()
             )
-        }
-        .floatingPanelLayout(panelLayout)
-        .floatingPanelState($panelState)
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-                .presentationDetents([.medium, .large]) // 💡 iOS 16+이면 높이 제어 가능
-        }
-        .onChange(of: selectedDate) { newValue in
-            if let date = newValue {
-                eventSheetViewModel.setDate(date) // ✅ 메서드를 통해서 안전하게 변경
+            
+            .floatingPanelLayout(panelLayout)
+            .floatingPanelState($panelState)
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+                    .presentationDetents([.medium, .large]) // 💡 iOS 16+이면 높이 제어 가능
+            }
+            .onChange(of: selectedDate) { newValue in
+                if let date = newValue {
+                    eventSheetViewModel.setDate(date) // ✅ 메서드를 통해서 안전하게 변경
+                    
+                    withAnimation(.easeOut(duration: 0.1)) {
+                        panelState = panelState
+                    }
+                }
+            }
+            .onChange(of: scenePhase) {
+                EventKitManager.shared.clearCache()
+                refreshVisibleMonths = true
+                if scenePhase == .active {
+                    Task {
+                        await eventKitManager.checkCalendarAccess()
+                    }
+                }
+            }
+            .onChange(of: scenePhase) { newValue in
+                if newValue == .active {
+                    Task {
+                        await eventKitManager.checkCalendarAccess()
+                    }
+                }
+            }
+            .onAppear {
+                if !hasAppeared {
+                    hasAppeared = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        scrollToToday = true
+                    }
+                }
                 
-                withAnimation(.easeOut(duration: 0.1)) {
-                    panelState = panelState
-                }
-            }
-        }
-        
-        
-        .onChange(of: scenePhase) {
-            EventKitManager.shared.clearCache()
-            refreshVisibleMonths = true
-            if scenePhase == .active {
                 Task {
                     await eventKitManager.checkCalendarAccess()
-                }
-            }
-        }
-        .onChange(of: scenePhase) { newValue in
-            if newValue == .active {
-                Task {
-                    await eventKitManager.checkCalendarAccess()
-                }
-            }
-        }
-        .onAppear {
-            if !hasAppeared {
-                hasAppeared = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    scrollToToday = true
+                    
+                    if eventKitManager.isCalendarAccessGranted {
+                        EventKitManager.shared.fetchEvents(for: currentMonth) { events in
+                            for event in events {
+                                let occurrences = event.occurrences(in: currentMonth)
+                                for occurrenceDate in occurrences {
+                                    let dateStr = DateFormatter.localizedString(from: occurrenceDate, dateStyle: .short, timeStyle: .none)
+                                    log("📅 \(dateStr): \(event.ekEvent.title ?? "(제목 없음)")")
+                                }
+                            }
+                        }
+                        await MainActor.run {
+                            selectedDate = Date()
+                            eventSheetViewModel.setDate(selectedDate!) // ✅ 안전하게 date 변경 및 이벤트 로딩
+                            panelState = .tip
+                        }
+                    } else {
+                        log("❗️캘린더 권한이 없어서 이벤트를 불러올 수 없음")
+                    }
                 }
             }
             
-            Task {
-                await eventKitManager.checkCalendarAccess()
-                
-                if eventKitManager.isCalendarAccessGranted {
-                    EventKitManager.shared.fetchEvents(for: currentMonth) { events in
-                        for event in events {
-                            let occurrences = event.occurrences(in: currentMonth)
-                            for occurrenceDate in occurrences {
-                                let dateStr = DateFormatter.localizedString(from: occurrenceDate, dateStyle: .short, timeStyle: .none)
-                                log("📅 \(dateStr): \(event.ekEvent.title ?? "(제목 없음)")")
-                            }
-                        }
-                    }
-                    await MainActor.run {
-                        selectedDate = Date()
-                        eventSheetViewModel.setDate(selectedDate!) // ✅ 안전하게 date 변경 및 이벤트 로딩
-                        panelState = .tip
-                    }
-                } else {
-                    log("❗️캘린더 권한이 없어서 이벤트를 불러올 수 없음")
-                }
-            }
+            CustomBottomView()
         }
     }
     
