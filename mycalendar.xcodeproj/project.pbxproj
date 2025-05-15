@@ -12,6 +12,7 @@
 		1AB0A64A2DBB7606003C3491 /* mycalendarwidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1AB0A6362DBB7605003C3491 /* mycalendarwidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1AB0A6792DBB79D0003C3491 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1AB0A6782DBB79D0003C3491 /* ActivityKit.framework */; };
 		1AB0A67E2DBB7C52003C3491 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1AB0A6782DBB79D0003C3491 /* ActivityKit.framework */; };
+		1AFD3FD02DD5D77B0030A344 /* FloatingPanel in Frameworks */ = {isa = PBXBuildFile; productRef = 1AFD3FCF2DD5D77B0030A344 /* FloatingPanel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +79,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1AB0A6792DBB79D0003C3491 /* ActivityKit.framework in Frameworks */,
+				1AFD3FD02DD5D77B0030A344 /* FloatingPanel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -144,8 +146,6 @@
 				1AB0A6242DBB74F7003C3491 /* mycalendar */,
 			);
 			name = mycalendar;
-			packageProductDependencies = (
-			);
 			productName = mycalendar;
 			productReference = 1AB0A6222DBB74F7003C3491 /* mycalendar.app */;
 			productType = "com.apple.product-type.application";
@@ -166,8 +166,6 @@
 				1AB0A63C2DBB7605003C3491 /* mycalendarwidget */,
 			);
 			name = mycalendarwidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = mycalendarwidgetExtension;
 			productReference = 1AB0A6362DBB7605003C3491 /* mycalendarwidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -199,6 +197,9 @@
 			);
 			mainGroup = 1AB0A6192DBB74F7003C3491;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1AFD3FCE2DD5D77B0030A344 /* XCRemoteSwiftPackageReference "FloatingPanel" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1AB0A6232DBB74F7003C3491 /* Products */;
 			projectDirPath = "";
@@ -529,6 +530,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1AFD3FCE2DD5D77B0030A344 /* XCRemoteSwiftPackageReference "FloatingPanel" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scenee/FloatingPanel.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1AFD3FCF2DD5D77B0030A344 /* FloatingPanel */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1AFD3FCE2DD5D77B0030A344 /* XCRemoteSwiftPackageReference "FloatingPanel" */;
+			productName = FloatingPanel;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1AB0A61A2DBB74F7003C3491 /* Project object */;
 }
