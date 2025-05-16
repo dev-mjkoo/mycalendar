@@ -41,6 +41,7 @@ struct MainView: View {
                         currentMonthText: $currentMonthText,
                         scrollToToday: $scrollToToday,
                         selectedDate: $selectedDate,
+                        panelState: $panelState,
                         refreshVisibleMonths: $refreshVisibleMonths,
                         onScroll: {
                             log("📱 CalendarView 스크롤 시작됨 -> 패널 TIP으로")
@@ -80,6 +81,12 @@ struct MainView: View {
                 if let date = newValue {
                     eventSheetViewModel.setDate(date) // ✅ 메서드를 통해서 안전하게 변경
                 }
+            }
+            .onChange(of: panelState) { newValue in
+                if let state = newValue {
+                    panelState = state
+                }
+                
             }
             .onChange(of: scenePhase) {
                 EventKitManager.shared.clearCache()
