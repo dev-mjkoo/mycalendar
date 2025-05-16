@@ -327,6 +327,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        HapticFeedbackManager.triggerNotification(.success)
+
         let date = days[indexPath.item]
         if date != Date.distantPast {
             onDateSelected?(date)

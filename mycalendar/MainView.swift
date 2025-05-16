@@ -88,6 +88,9 @@ struct MainView: View {
                 }
                 
             }
+            .onChange(of: currentMonthText, { oldValue, newValue in
+                HapticFeedbackManager.trigger()
+            })
             .onChange(of: scenePhase) {
                 EventKitManager.shared.clearCache()
                 refreshVisibleMonths = true
