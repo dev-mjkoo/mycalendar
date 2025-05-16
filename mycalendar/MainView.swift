@@ -44,9 +44,9 @@ struct MainView: View {
                         refreshVisibleMonths: $refreshVisibleMonths,
                         onScroll: {
                             log("📱 CalendarView 스크롤 시작됨 -> 패널 TIP으로")
-                            //                        withAnimation(.easeOut(duration: 0.1)) {
-                            //                            panelState = .tip
-                            //                        }
+                                withAnimation(.easeOut(duration: 0.1)) {
+                                    panelState = .tip
+                                }
                         }
                     )
                 }
@@ -69,7 +69,7 @@ struct MainView: View {
                     return appearance
                 }()
             )
-            
+            .floatingPanelBehavior(FloatingPanelStocksBehavior())
             .floatingPanelLayout(panelLayout)
             .floatingPanelState($panelState)
             .sheet(isPresented: $showSettings) {
@@ -224,4 +224,10 @@ class DailyEventSheetViewModel: ObservableObject {
     // todo : 나중에 ekevent를 notificationcenter를 통해서 가져오면 그떈 바뀔때 여기도 reload되게하기
     
 }
+
+class FloatingPanelStocksBehavior: FloatingPanelBehavior {
+    let springDecelerationRate: CGFloat = UIScrollView.DecelerationRate.fast.rawValue
+    let springResponseTime: CGFloat = 0.2
+}
+
 
