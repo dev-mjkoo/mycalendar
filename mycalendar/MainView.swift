@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import EventKit
 import FloatingPanel
 
@@ -91,21 +92,18 @@ struct MainView: View {
             .onChange(of: currentMonthText, { oldValue, newValue in
                 HapticFeedbackManager.trigger()
             })
-            .onChange(of: scenePhase) {
-                EventKitManager.shared.clearCache()
-                refreshVisibleMonths = true
-                if scenePhase == .active {
-                    Task {
-                        await eventKitManager.checkCalendarAccess()
-                    }
-                }
-            }
+            // ✅ scenePhase가 active 될 때 권한만 체크
             .onChange(of: scenePhase) { newValue in
                 if newValue == .active {
                     Task {
                         await eventKitManager.checkCalendarAccess()
                     }
                 }
+            }
+
+            // ✅ EventKitManager가 캐시 invalidate 할 때만 캘린더 화면 리프레시
+            .onChange(of: eventKitManager.cacheVersion) { _ in
+                refreshVisibleMonths = true
             }
             .onAppear {
                 if !hasAppeared {
@@ -219,6 +217,20 @@ class DailyEventSheetViewModel: ObservableObject {
     @Published private(set) var date: Date = Date()
     @Published var events: [Event] = []
     
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        NotificationCenter.default.publisher(for: .eventKitCacheInvalidated)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    log("🔄 [DailyEventSheetViewModel] EventKitCacheInvalidated 감지 → 이벤트 리로드")
+                    self.loadEvents(for: self.date)
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
     @MainActor
     func setDate(_ newDate: Date) {
         self.date = newDate
@@ -227,12 +239,25 @@ class DailyEventSheetViewModel: ObservableObject {
     
     @MainActor
     private func loadEvents(for date: Date) {
-        events = EventKitManager.shared.events(for: date)
-        log("📅 [ViewModel] \(date.formatted(date: .long, time: .omitted)) -> \(events.count)개 이벤트")
+        let result = EventKitManager.shared.events(for: date)
+
+        if result.isEmpty {
+            // 캐시가 없어서 비었을 가능성 → fetch 걸리고 있음
+            let startOfMonth = Calendar.current.startOfMonth(for: date)
+            EventKitManager.shared.fetchEvents(for: startOfMonth) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    let refreshed = EventKitManager.shared.events(for: date)
+                    self.events = refreshed
+                    log("📅 [ViewModel] \(date.formatted(date: .long, time: .omitted)) -> \(refreshed.count)개 이벤트 (fetch 후 갱신)")
+                }
+            }
+        } else {
+            // 캐시 있으면 바로 세팅
+            self.events = result
+            log("📅 [ViewModel] \(date.formatted(date: .long, time: .omitted)) -> \(result.count)개 이벤트 (캐시 hit)")
+        }
     }
-    
-    // todo : 나중에 ekevent를 notificationcenter를 통해서 가져오면 그떈 바뀔때 여기도 reload되게하기
-    
 }
 
 class FloatingPanelStocksBehavior: FloatingPanelBehavior {

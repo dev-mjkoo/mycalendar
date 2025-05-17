@@ -1,25 +1,39 @@
 import Foundation
 import EventKit
 import SwiftUI
+import Combine
 
 @MainActor
 class EventKitManager: ObservableObject {
     static let shared = EventKitManager()
     
     @Published var isCalendarAccessGranted: Bool = false
-    
+    @Published var cacheVersion = UUID() // ✅ cache invalidate trigger용 (SwiftUI View에서 감지용)
+
     private let eventStore = EKEventStore()
-    
-    private var eventCache: [Date: [Event]] = [:]  // ✅ 캐시도 Event 기준
+    private var cancellables = Set<AnyCancellable>()
+    private var eventCache: [Date: [Event]] = [:]
 
     private init() {
+        setupEKEventStoreChangedListener()
         Task {
             await checkCalendarAccess()
         }
     }
     
-    // todo : ekevent를 notificationceneter를 이용해서 바뀔 때만 reload하게 하기 (그러면 daily~~view도 같이 업뎃 될듯)
+    // ✅ 이벤트 스토어 변경 감지해서 캐시 리셋 & 뷰 갱신 트리거
+    private func setupEKEventStoreChangedListener() {
+        NotificationCenter.default.publisher(for: .EKEventStoreChanged)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                log("📣 EKEventStoreChanged 감지됨 -> 캐시 리셋 & 뷰 리프레시")
+                self.clearCache()
+                self.cacheVersion = UUID() // 뷰 업데이트 트리거
+            }
+            .store(in: &cancellables)
+    }
     
+    // ✅ 권한 체크 (앱 진입, scenePhase 등에서 호출)
     func checkCalendarAccess() async {
         let status = EKEventStore.authorizationStatus(for: .event)
         switch status {
@@ -32,7 +46,7 @@ class EventKitManager: ObservableObject {
     
     func requestAccess() async -> Bool {
         let status = EKEventStore.authorizationStatus(for: .event)
-
+        
         switch status {
         case .fullAccess, .writeOnly:
             isCalendarAccessGranted = true
@@ -46,7 +60,7 @@ class EventKitManager: ObservableObject {
                 isCalendarAccessGranted = granted
                 return granted
             } catch {
-                log("캘린더 권한 요청 실패: \(error.localizedDescription)")
+                log("❗️ 캘린더 권한 요청 실패: \(error.localizedDescription)")
                 isCalendarAccessGranted = false
                 return false
             }
@@ -60,26 +74,24 @@ class EventKitManager: ObservableObject {
         isCalendarAccessGranted = false
     }
     
+    // ✅ 특정 날짜 이벤트 가져오기 (캐시 없으면 자동 fetch)
     func events(for day: Date) -> [Event] {
         let calendar = Calendar.current
         let startOfMonth = calendar.startOfMonth(for: day)
 
-        // ✅ 캐시 없으면 바로 fetch 걸고 빈 리스트 리턴 (자동 선행)
+        // 캐시 없으면 fetch (lazy load 패턴)
         if eventCache[startOfMonth] == nil {
             log("⚡️ [AUTO FETCH ON DEMAND] \(startOfMonth.formatted(date: .long, time: .omitted))")
-            fetchEvents(for: startOfMonth) { events in
-                log("✅ [FETCH DONE] \(startOfMonth.formatted(date: .long, time: .omitted))")
-                // 필요하다면 NotificationCenter 등으로 UI 리프레시 트리거
-            }
-            // ❗️ 당장 빈 리스트 리턴하더라도, 다음 클릭 시에는 뜸
+            fetchEvents(for: startOfMonth) { _ in }
             return []
         }
 
+        // 캐시에서 필터링된 일간 이벤트 반환
         return eventCache[startOfMonth]!.filter {
             isEvent($0, on: day, calendar: calendar, monthStart: startOfMonth)
         }
     }
-    
+
     private func isEvent(_ event: Event, on day: Date, calendar: Calendar, monthStart: Date) -> Bool {
         let startOfDay = calendar.startOfDay(for: day)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
@@ -88,7 +100,6 @@ class EventKitManager: ObservableObject {
             return event.occurrences(in: monthStart).contains { calendar.isDate($0, inSameDayAs: day) }
         } else if let start = event.ekEvent.startDate,
                   let end = event.ekEvent.endDate {
-            // 🔥 하루종일/시간 있는 이벤트 모두 정확히 커버
             return start < endOfDay && end >= startOfDay
         } else if let start = event.ekEvent.startDate {
             return calendar.isDate(start, inSameDayAs: day)
@@ -97,9 +108,7 @@ class EventKitManager: ObservableObject {
         }
     }
     
-    
-    
-    /// 🔥 특정 월의 이벤트를 [Event] 형태로 가져오기 (더 이상 그룹화 없음)
+    // ✅ 월별 이벤트 fetch + 캐시화
     func fetchEvents(for month: Date, completion: @escaping ([Event]) -> Void) {
         guard isCalendarAccessGranted else {
             completion([])
@@ -109,26 +118,32 @@ class EventKitManager: ObservableObject {
         let calendar = Calendar.current
         let startOfMonth = calendar.startOfMonth(for: month)
 
-        // ✅ 캐시 확인 먼저
+        // 캐시 히트 시 바로 리턴
         if let cached = eventCache[startOfMonth] {
             log("🧠 [CACHE HIT] \(formattedMonth(from: startOfMonth))")
             completion(cached)
             return
         }
-        
+
         log("🌐 [FETCH EVENTS] \(formattedMonth(from: startOfMonth))")
-        
+
         let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
         let predicate = eventStore.predicateForEvents(withStart: startOfMonth, end: endOfMonth, calendars: nil)
         let ekEvents = eventStore.events(matching: predicate)
         
-        let events = ekEvents.map { Event(ekEvent: $0) }  // ✅ 직접 Event로 변환
-        eventCache[startOfMonth] = events  // ✅ 캐시 저장
+        let events = ekEvents.map { Event(ekEvent: $0) }
+        eventCache[startOfMonth] = events
         completion(events)
     }
     
+    private func notifyCacheInvalidated() {
+        NotificationCenter.default.post(name: .eventKitCacheInvalidated, object: nil)
+    }
+
     func clearCache() {
         eventCache.removeAll()
+        cacheVersion = UUID() // 기존 View용
+        notifyCacheInvalidated() // DailyEventSheetViewModel용
     }
     
     private func formattedMonth(from date: Date) -> String {
@@ -142,4 +157,8 @@ extension Calendar {
     func startOfMonth(for date: Date) -> Date {
         return self.date(from: self.dateComponents([.year, .month], from: date))!
     }
+}
+
+extension Notification.Name {
+    static let eventKitCacheInvalidated = Notification.Name("eventKitCacheInvalidated")
 }
