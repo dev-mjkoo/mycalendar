@@ -28,16 +28,10 @@ struct DailyEventSheetView: View {
                 Group {
                     List {
                         ForEach(viewModel.events) { event in
-                            VStack(alignment: .leading) {
-                                Text(event.ekEvent.title ?? "(제목 없음)")
-                                    .font(.headline)
-                                if let startDate = event.ekEvent.startDate {
-                                    Text(startDate.formatted(date: .omitted, time: .shortened))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(.vertical, 4)
+                            EventRowView(
+                                event: event,
+                                color: Color(event.ekEvent.calendar.cgColor ?? UIColor.systemGray.cgColor)  // fallback 필수!
+                            )
                         }
                     }
                     .listStyle(.plain)
