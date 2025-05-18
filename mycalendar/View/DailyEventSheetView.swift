@@ -18,8 +18,8 @@ struct DailyEventSheetView: View {
     
     var body: some View {
         VStack {
-            Text(viewModel.date.formatted(date: .long, time: .omitted))
-                .font(.title)
+            Text(viewModel.date.completeFormattedDate)
+                .font(.system(size: 24, weight: .semibold))
                 .padding()
             
             if viewModel.events.isEmpty {
@@ -32,9 +32,14 @@ struct DailyEventSheetView: View {
                                 event: event,
                                 color: Color(event.ekEvent.calendar.cgColor ?? UIColor.systemGray.cgColor)  // fallback 필수!
                             )
+                            .listRowBackground(Color.clear)  // ✨ 이 한 줄이 핵심!
+
                         }
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)  // iOS 16+
+
+                    .background(Color.clear) // 리스트 자체도 투명하게!
                 }
                 .modifier(
                     FloatingPanelScrollResettableModifier(dateID: viewModel.date, proxy: proxy)

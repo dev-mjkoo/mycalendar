@@ -49,9 +49,9 @@ struct EventRowView: View {
             // ✅ 오른쪽: 시간 or 날짜
             VStack(alignment: .trailing, spacing: 2) {
                 if isAllDayOrMultiDay {
-                    Text(formattedDate(event.ekEvent.startDate))
+                    Text(event.ekEvent.startDate.localeSmartFormattedDateYYYYMMDD)
                         .font(.subheadline)
-                    Text(formattedDate(event.ekEvent.endDate))
+                    Text(event.ekEvent.endDate.localeSmartFormattedDateYYYYMMDD)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 } else {
@@ -73,12 +73,6 @@ struct EventRowView: View {
          !Calendar.current.isDate(event.ekEvent.startDate!, inSameDayAs: event.ekEvent.endDate!))
     }
 
-    func formattedDate(_ date: Date?) -> String {
-        guard let date = date else { return "" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy. M. d."
-        return formatter.string(from: date)
-    }
 
     func formattedTime(_ date: Date?) -> String {
         guard let date = date else { return "" }
