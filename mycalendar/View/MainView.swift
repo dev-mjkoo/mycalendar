@@ -28,9 +28,7 @@ struct MainView: View {
                 VStack(spacing: 0) {
                     CustomHeaderView(
                         currentMonthText: $currentMonthText,
-                        onTodayTap: {
-                            scrollToToday.toggle()
-                        },
+                        
                         onSettingsTap: {
                             showSettings = true
                             log("⚙️ 설정 버튼 눌림")
@@ -138,7 +136,11 @@ struct MainView: View {
                 }
             }
             
-            CustomBottomView()
+            CustomBottomView(
+                onTodayTap: {
+                    scrollToToday.toggle()
+                }
+            )
         }
     }
     

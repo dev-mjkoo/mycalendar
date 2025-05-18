@@ -8,7 +8,6 @@ import SwiftUI
 
 struct CustomHeaderView: View {
     @Binding var currentMonthText: String
-    var onTodayTap: () -> Void
     var onSettingsTap: () -> Void
 
     var body: some View {
@@ -17,10 +16,6 @@ struct CustomHeaderView: View {
                 .font(.title2.bold())
 
             Spacer()
-
-            Button("오늘") {
-                onTodayTap()
-            }
 
             Button {
                 onSettingsTap()
