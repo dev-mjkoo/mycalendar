@@ -1,13 +1,7 @@
 import UIKit
 import EventKit
 
-extension Calendar {
-    func startOfWeek(for date: Date) -> Date {
-        let weekday = component(.weekday, from: date)
-        let daysToSubtract = weekday - 1
-        return self.date(byAdding: .day, value: -daysToSubtract, to: startOfDay(for: date))!
-    }
-}
+
 
 class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 

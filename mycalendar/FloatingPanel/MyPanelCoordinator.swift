@@ -38,10 +38,3 @@ class MyPanelCoordinator: FloatingPanelCoordinator {
         context: UIViewControllerRepresentableContext<Representable>
     ) where Representable: UIViewControllerRepresentable {}
 }
-
-extension MyPanelCoordinator: FloatingPanelControllerDelegate {
-    func floatingPanelDidChangeState(_ fpc: FloatingPanelController) {
-        // NOTE: This timing is difference from one of the change of the binding value
-        // to `floatingPanelState(_:)` modifier
-    }
-}

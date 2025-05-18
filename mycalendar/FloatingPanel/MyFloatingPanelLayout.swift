@@ -18,3 +18,4 @@ class MyFloatingPanelLayout: FloatingPanelLayout {
         .tip: FloatingPanelLayoutAnchor(absoluteInset: 50.0, edge: .bottom, referenceGuide: .safeArea),
     ]
 }
+
