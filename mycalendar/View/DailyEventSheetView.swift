@@ -25,44 +25,42 @@ struct DailyEventSheetView: View {
             if viewModel.events.isEmpty {
                 EmptyView()
             } else {
-                GeometryReader { geo in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(viewModel.events) { event in
-                                VStack(alignment: .leading) {
-                                    Text(event.ekEvent.title ?? "(제목 없음)")
-                                        .font(.headline)
-                                    if let startDate = event.ekEvent.startDate {
-                                        Text(startDate.formatted(date: .omitted, time: .shortened))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
+                Group {
+                    List {
+                        ForEach(viewModel.events) { event in
+                            VStack(alignment: .leading) {
+                                Text(event.ekEvent.title ?? "(제목 없음)")
+                                    .font(.headline)
+                                if let startDate = event.ekEvent.startDate {
+                                    Text(startDate.formatted(date: .omitted, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(.horizontal)
                             }
+                            .padding(.vertical, 4)
                         }
-                        .background(
-                            GeometryReader { contentGeo in
-                                Color.clear
-                                    .onAppear {
-                                        contentHeight = contentGeo.size.height
-                                        availableHeight = geo.size.height
-                                    }
-                                    .onChange(of: viewModel.events.count) { _ in
-                                        contentHeight = contentGeo.size.height
-                                        availableHeight = geo.size.height
-                                    }
-                            }
-                        )
-                        .padding(.bottom, 32)
                     }
-                    .scrollIndicators(.hidden)
-                    .disabled(contentHeight <= geo.size.height) // ✅ 여기서 자동 스크롤 on/off
+                    .listStyle(.plain)
                 }
+                .modifier(
+                    FloatingPanelScrollResettableModifier(dateID: viewModel.date, proxy: proxy)
+                )
+                
             }
             
             Spacer(minLength: 0)
         }
         .presentationDetents([.medium, .large])
+    }
+}
+
+struct FloatingPanelScrollResettableModifier: ViewModifier {
+    let dateID: Date
+    let proxy: FloatingPanelProxy
+
+    func body(content: Content) -> some View {
+        content
+            .id(dateID) // modifier 레벨에서 강제 리셋
+            .floatingPanelScrollTracking(proxy: proxy)
     }
 }

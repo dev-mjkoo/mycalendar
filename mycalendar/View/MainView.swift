@@ -61,6 +61,7 @@ struct MainView: View {
                     viewModel: eventSheetViewModel,
                     refreshTrigger: $refreshVisibleMonths
                 )
+
             }
             
             .floatingPanelSurfaceAppearance(
