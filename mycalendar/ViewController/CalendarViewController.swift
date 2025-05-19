@@ -164,10 +164,8 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         guard let indexPath = collectionView.indexPathForItem(at: visibleCenter) else { return }
 
         let date = visibleMonths[indexPath.item]
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 M월"
-        let newMonth = formatter.string(from: date)
+        
+        let newMonth = date.localeSmartFormattedDateYYYYMM
 
         if newMonth != lastReportedMonth {
             lastReportedMonth = newMonth
