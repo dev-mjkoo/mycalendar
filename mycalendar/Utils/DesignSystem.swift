@@ -13,7 +13,8 @@ struct CalendarLayout {
     
     
     /// 요일 셀 하나의 높이 (정사각형 기준) -> 일자별 셀높이
-    static let dayCellHeight: CGFloat = 120
+    static let dayCellHeight: CGFloat = 110
+    
 
     /// 요일 셀 하나의 너비 계산용 분모 (보통 7일)
     static let dayCellWidthDivider: CGFloat = 7
@@ -31,7 +32,7 @@ struct CalendarLayout {
     static let verticalPadding: CGFloat = 16
 
     /// 하루에 표기할 이벤트 라인 최대 수
-    static let maxVisibleLines = 3
+    static let maxVisibleLines = 2
 
     /// 이벤트 바 한 줄의 세로 간격 (lineIndex * 이 값)
     static let eventLineHeight: CGFloat = 16
