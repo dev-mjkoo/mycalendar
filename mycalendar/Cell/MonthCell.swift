@@ -56,22 +56,22 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         contentView.addSubview(overlayView)
 
         NSLayoutConstraint.activate([
-            monthTitleLeadingConstraint!,  // 👉 이게 반드시 필요합니다!
+            monthTitleLeadingConstraint!,
             monthTitleContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             monthTitleContainerView.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 1.0 / 7.0),
-            monthTitleContainerView.heightAnchor.constraint(equalToConstant: 32),
+            monthTitleContainerView.heightAnchor.constraint(equalToConstant: CalendarLayout.monthTitleHeight) // 👈 안정적인 높이
         ])
 
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor, constant: 8),
+            collectionView.topAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor, constant: 0), // 👈 여백 줄이기
             collectionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            collectionView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            overlayView.topAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor, constant: 8),
+            overlayView.topAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor, constant: 4),
             overlayView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             overlayView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            overlayView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            overlayView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
     }
     
@@ -278,10 +278,13 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         monthTitleContainerView.addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: monthTitleContainerView.topAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor),
             titleLabel.centerXAnchor.constraint(equalTo: monthTitleContainerView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: monthTitleContainerView.centerYAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: monthTitleContainerView.centerYAnchor)
         ])
     }
+
 
     private func setupOverlayView() {
         overlayView.isUserInteractionEnabled = false

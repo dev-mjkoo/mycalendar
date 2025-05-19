@@ -25,7 +25,7 @@ struct CalendarLayout {
     static let rowsPerMonth: Int = 6
 
     /// 월 타이틀 (예: "May 2025")의 높이
-    static let monthTitleHeight: CGFloat = 32
+    static let monthTitleHeight: CGFloat = 24
 
     /// MonthCell 상하 여백
     static let verticalPadding: CGFloat = 16
