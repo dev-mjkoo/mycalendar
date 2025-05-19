@@ -1,11 +1,10 @@
 import UIKit
 import EventKit
 
-
-
 class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
     private let titleLabel = UILabel()
+    private let monthTitleContainerView = UIView()
     private var collectionView: UICollectionView!
     private var overlayView = UIView()
 
@@ -15,10 +14,12 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     private var monthDate: Date = Date()
     
     var onDateSelected: ((Date) -> Void)?
+    private var monthTitleLeadingConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupTitleLabel()
+        setupMonthTitleContainerView()
         setupCollectionView()
         setupOverlayView()
         setupLayout()
@@ -34,12 +35,47 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.dateFormat = "MMMM"
         titleLabel.text = formatter.string(from: date)
 
         generateDays(for: date)
         collectionView.reloadData()
         layoutOverlayEvents()
+        updateMonthTitlePosition()
+    }
+    
+    private func setupLayout() {
+        monthTitleLeadingConstraint = monthTitleContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor)
+
+        contentView.addSubview(monthTitleContainerView)
+        contentView.addSubview(collectionView)
+        contentView.addSubview(overlayView)
+
+        NSLayoutConstraint.activate([
+            monthTitleLeadingConstraint!,  // 👉 이게 반드시 필요합니다!
+            monthTitleContainerView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            monthTitleContainerView.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 1.0 / 7.0),
+            monthTitleContainerView.heightAnchor.constraint(equalToConstant: 32),
+        ])
+
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor, constant: 8),
+            collectionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+
+            overlayView.topAnchor.constraint(equalTo: monthTitleContainerView.bottomAnchor, constant: 8),
+            overlayView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+        ])
+    }
+    
+    private func updateMonthTitlePosition() {
+        guard let firstValidIndex = days.firstIndex(where: { $0 != Date.distantPast }) else { return }
+        let column = firstValidIndex % 7
+        let columnWidth = bounds.width / CalendarLayout.dayCellWidthDivider
+        monthTitleLeadingConstraint?.constant = columnWidth * CGFloat(column)
     }
 
     private func layoutOverlayEvents() {
@@ -146,7 +182,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(overflowLabel)
     }
-    
 
     private func renderEventBlock(_ block: EventBlock) {
         guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
@@ -178,7 +213,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         eventView.frame = CGRect(x: startX + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(eventView)
     }
-    
+
     private func renderOverflowIndicator(for day: Date, count: Int) {
         guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
 
@@ -203,7 +238,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(overflowLabel)
     }
-    
+
     private func adjustedEndDate(for event: EKEvent) -> Date? {
         guard let _ = event.startDate, let endDate = event.endDate else { return nil }
 
@@ -255,6 +290,16 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
+    private func setupMonthTitleContainerView() {
+        monthTitleContainerView.translatesAutoresizingMaskIntoConstraints = false
+        monthTitleContainerView.backgroundColor = .clear
+        monthTitleContainerView.addSubview(titleLabel)
+
+        NSLayoutConstraint.activate([
+            titleLabel.centerXAnchor.constraint(equalTo: monthTitleContainerView.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: monthTitleContainerView.centerYAnchor),
+        ])
+    }
 
     private func setupOverlayView() {
         overlayView.isUserInteractionEnabled = false
@@ -276,26 +321,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         collectionView.backgroundColor = .clear
     }
 
-    private func setupLayout() {
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(collectionView)
-        contentView.addSubview(overlayView)
-
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-
-            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            collectionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-
-            overlayView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            overlayView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            overlayView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            overlayView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-        ])
-    }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         days.count
