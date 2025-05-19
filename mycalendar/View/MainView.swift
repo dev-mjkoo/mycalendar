@@ -147,8 +147,10 @@ struct MainView: View {
     
     var weekdayHeader: some View {
         HStack {
+            // todo 이것도 local화 하기
             ForEach(["일", "월", "화", "수", "목", "금", "토"], id: \.self) { day in
                 Text(day)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(day == "일" ? .red : day == "토" ? .blue : .primary)
                     .frame(maxWidth: .infinity)
             }

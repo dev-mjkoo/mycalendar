@@ -13,7 +13,8 @@ struct CustomHeaderView: View {
     var body: some View {
         HStack {
             Text(currentMonthText)
-                .font(.title2.bold())
+                .font(.system(size: 24, weight: .bold))
+
 
             Spacer()
 

@@ -102,11 +102,12 @@ class DayCell: UICollectionViewCell {
         container.addArrangedSubview(circleContainer)
     }
     
-    func configure(day: String, isToday: Bool = false, isSelected: Bool = false) {
+    // todo 나중에는 holiday도 빨간색 하면되겟다. 여기서
+    func configure(day: String, isToday: Bool = false, isSelected: Bool = false, index: Int) {
         label.text = day
-        isTodayDate = isToday // ✅ 저장
+        isTodayDate = isToday
         topSeparator.isHidden = day.isEmpty
-        
+
         if day.isEmpty {
             circleView.backgroundColor = .clear
             label.textColor = .clear
@@ -117,10 +118,17 @@ class DayCell: UICollectionViewCell {
             circleView.backgroundColor = .systemGray
             label.textColor = .white
         } else {
+            // ✅ 요일 컬러 처리
+            switch index {
+            case 0:  // 일요일
+                label.textColor = .systemRed
+            case 6:  // 토요일
+                label.textColor = .systemBlue
+            default:
+                label.textColor = .label
+            }
             circleView.backgroundColor = .clear
-            label.textColor = .label
         }
-        
+
         contentView.backgroundColor = .clear
-    }
-}
+    }}

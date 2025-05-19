@@ -227,6 +227,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         overflowLabel.textColor = CalendarColor.overflowText
         overflowLabel.backgroundColor = .clear
         overflowLabel.clipsToBounds = false
+        overflowLabel.textAlignment = .center
 
         overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(overflowLabel)
@@ -314,9 +315,11 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "DayCell", for: indexPath) as! DayCell
         let date = days[indexPath.item]
+        let weekdayIndex = indexPath.item % 7  // 0 ~ 6
 
         if date == Date.distantPast {
-            cell.configure(day: "", isToday: false, isSelected: false)
+            cell.configure(day: "", isToday: false, isSelected: false, index: weekdayIndex)
+
         } else {
             let isToday = calendar.isDateInToday(date)
             let day = calendar.component(.day, from: date)
@@ -324,7 +327,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             let isSelected = selectedDate != nil && calendar.isDate(date, inSameDayAs: selectedDate!)
 
             
-            cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected)
+            cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected, index: weekdayIndex)
         }
 
         return cell
