@@ -139,6 +139,7 @@ struct MainView: View {
             CustomBottomView(
                 onTodayTap: {
                     scrollToToday.toggle()
+                    selectedDate = Date()
                 }
             )
         }

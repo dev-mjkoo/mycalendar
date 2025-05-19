@@ -40,10 +40,16 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
             }
         }
         vc.onScroll = onScroll
+        vc.selectedDate = self.selectedDate  // ✅ 초기값 전달
+
         vc.onDateSelected = { date in
             DispatchQueue.main.async {
                 self.selectedDate = date
                 self.panelState = .half
+                vc.selectedDate = date               // ✅ ViewController 내부도 갱신!
+                vc.collectionView.reloadData()       // ✅ 선택 상태 반영 todo해야하나
+
+
             }
         }
         
@@ -58,6 +64,12 @@ struct UIKitCalendarView: UIViewControllerRepresentable {
                 self.scrollToToday = false
             }
         }
+        
+        // ✅ SwiftUI에서 변경된 selectedDate가 있다면 ViewController에도 반영
+            if uiViewController.selectedDate != selectedDate {
+                uiViewController.selectedDate = selectedDate
+                uiViewController.collectionView.reloadData()
+            }
         
         if refreshVisibleMonths {
             uiViewController.reloadVisibleMonths()
