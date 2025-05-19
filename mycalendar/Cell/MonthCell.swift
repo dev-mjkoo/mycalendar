@@ -131,23 +131,23 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
         let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let blockY = y + CGFloat(maxVisibleLines) * 16 + 2
+        let blockY = y + CGFloat(maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin
 
-        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - 4
-        let height: CGFloat = 14
+        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - (CalendarLayout.eventHorizontalInset * 2)
+        let height = CalendarLayout.eventBlockHeight
 
         let overflowLabel = UILabel()
         overflowLabel.text = " + \(count)개 "
-        overflowLabel.font = .systemFont(ofSize: 10, weight: .medium)
-        overflowLabel.textColor = UIColor.secondaryLabel  // ✅ 시스템 secondary label 컬러 사용 (다크/라이트 자동 대응)
-        overflowLabel.backgroundColor = .clear            // ✅ background 없애기
-        overflowLabel.layer.cornerRadius = 0
+        overflowLabel.font = CalendarFont.overflowFont
+        overflowLabel.textColor = CalendarColor.overflowText
+        overflowLabel.backgroundColor = .clear
         overflowLabel.clipsToBounds = false
 
-        overflowLabel.frame = CGRect(x: x + 2, y: blockY, width: width, height: height)
+        overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(overflowLabel)
     }
     
+
     private func renderEventBlock(_ block: EventBlock) {
         guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
               let endIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.endDate) }) else { return }
@@ -157,25 +157,25 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         let endColumn = endIndex % 7
 
         let startX = CGFloat(startColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider)
-        let endX = CGFloat(endColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider) + (bounds.width / CalendarLayout.dayCellWidthDivider)
+        let endX = CGFloat(endColumn + 1) * (bounds.width / CalendarLayout.dayCellWidthDivider)
 
         let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let blockY = startY + CGFloat(block.lineIndex) * 16 + 2
+        let blockY = startY + CGFloat(block.lineIndex) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin
 
-        let width = endX - startX - 4
-        let height: CGFloat = 14
+        let width = endX - startX - (CalendarLayout.eventHorizontalInset * 2)
+        let height = CalendarLayout.eventBlockHeight
 
-        let baseColor = UIColor(cgColor: block.event.calendar.cgColor)
+        guard let baseCGColor = block.event.calendar.cgColor else { return }
 
         let eventView = UILabel()
         eventView.text = " \(block.event.title ?? "(제목 없음)") "
-        eventView.font = .systemFont(ofSize: 10, weight: .medium)
-        eventView.textColor = baseColor // 👈 텍스트 색상: 원래 색
-        eventView.backgroundColor = baseColor.withAlphaComponent(0.3) // 👈 바(bar) 배경: 반투명
+        eventView.font = CalendarFont.eventFont
+        eventView.textColor = CalendarColor.eventTextColor(from: baseCGColor)
+        eventView.backgroundColor = CalendarColor.eventBackgroundColor(from: baseCGColor)
         eventView.layer.cornerRadius = 4
         eventView.clipsToBounds = true
 
-        eventView.frame = CGRect(x: startX + 2, y: blockY, width: width, height: height)
+        eventView.frame = CGRect(x: startX + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(eventView)
     }
     
@@ -187,23 +187,23 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
 
         let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
         let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let blockY = y + CGFloat(2) * 16 + 2
+        let blockY = y + CGFloat(2) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin
 
-        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - 4
-        let height: CGFloat = 14
+        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - (CalendarLayout.eventHorizontalInset * 2)
+        let height = CalendarLayout.eventBlockHeight
 
         let overflowLabel = UILabel()
         overflowLabel.text = " 외 \(count)개 "
-        overflowLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        overflowLabel.font = CalendarFont.overflowFont
         overflowLabel.textColor = .white
-        overflowLabel.backgroundColor = UIColor.gray.withAlphaComponent(0.8)
+        overflowLabel.backgroundColor = CalendarColor.overflowBackground
         overflowLabel.layer.cornerRadius = 4
         overflowLabel.clipsToBounds = true
 
-        overflowLabel.frame = CGRect(x: x + 2, y: blockY, width: width, height: height)
+        overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
         overlayView.addSubview(overflowLabel)
     }
-
+    
     private func adjustedEndDate(for event: EKEvent) -> Date? {
         guard let _ = event.startDate, let endDate = event.endDate else { return nil }
 
@@ -250,10 +250,11 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     }
 
     private func setupTitleLabel() {
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 20)
+        titleLabel.font = CalendarFont.titleFont
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
     }
+
 
     private func setupOverlayView() {
         overlayView.isUserInteractionEnabled = false
