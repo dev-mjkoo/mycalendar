@@ -3,58 +3,117 @@ import UIKit
 class DayCell: UICollectionViewCell {
     private let label = UILabel()
     private let container = UIStackView()
-    private let topSeparator = UIView() // ✅ 구분선 추가
-
+    private let topSeparator = UIView()
+    private let circleView = UIView() // ✅ 배경 원 추가
+    private var isTodayDate: Bool = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
         setupTopSeparator()
-
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override var isSelected: Bool {
+        didSet {
+            updateSelectionAppearance()
+        }
+    }
+
+    private func updateSelectionAppearance() {
+        if label.text?.isEmpty ?? true {
+            circleView.backgroundColor = .clear
+            label.textColor = .clear
+        } else if isTodayDate {
+            circleView.backgroundColor = .systemRed
+            label.textColor = .white
+        } else if isSelected {
+            circleView.backgroundColor = .systemGray
+            label.textColor = .white
+        } else {
+            circleView.backgroundColor = .clear
+            label.textColor = .label
+        }
+    }
+
     private func setupTopSeparator() {
-            topSeparator.translatesAutoresizingMaskIntoConstraints = false
-            topSeparator.backgroundColor = UIColor.systemGray4.withAlphaComponent(0.6)
-            contentView.addSubview(topSeparator)
+        topSeparator.translatesAutoresizingMaskIntoConstraints = false
+        topSeparator.backgroundColor = UIColor.systemGray4.withAlphaComponent(0.6)
+        contentView.addSubview(topSeparator)
 
         NSLayoutConstraint.activate([
-            topSeparator.topAnchor.constraint(equalTo: contentView.topAnchor, constant: CalendarLayout.eventBlockHeight * 2),
+            topSeparator.topAnchor.constraint(equalTo: contentView.topAnchor, constant: CalendarLayout.eventBlockHeight + 4),
             topSeparator.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             topSeparator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             topSeparator.heightAnchor.constraint(equalToConstant: 0.5)
         ])
     }
 
-
     private func setupViews() {
         container.axis = .vertical
-        container.alignment = .fill
+        container.alignment = .center
         container.distribution = .fill
         container.isLayoutMarginsRelativeArrangement = true
-        container.layoutMargins = UIEdgeInsets(top: 8, left: 0, bottom: 16, right: 0)  // ✅ 원하는 top padding
+        container.layoutMargins = UIEdgeInsets(top: 24, left: 0, bottom: 64, right: 0)
 
         contentView.addSubview(container)
         container.frame = contentView.bounds
         container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
+        // ✅ 원 배경 설정
+        circleView.translatesAutoresizingMaskIntoConstraints = false
+        circleView.backgroundColor = .clear
+        circleView.layer.cornerRadius = 16
+        circleView.clipsToBounds = true
+
+        NSLayoutConstraint.activate([
+            circleView.widthAnchor.constraint(equalToConstant: 32),
+            circleView.heightAnchor.constraint(equalToConstant: 32)
+        ])
+
+        // ✅ 텍스트 라벨
+        label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
         label.font = UIFont.systemFont(ofSize: 16)
 
-        container.addArrangedSubview(label)
+        // ✅ 뷰 계층 구성
+        let circleContainer = UIView()
+        circleContainer.translatesAutoresizingMaskIntoConstraints = false
+        circleContainer.addSubview(circleView)
+        circleContainer.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            circleView.centerXAnchor.constraint(equalTo: circleContainer.centerXAnchor),
+            circleView.centerYAnchor.constraint(equalTo: circleContainer.centerYAnchor),
+            label.centerXAnchor.constraint(equalTo: circleContainer.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: circleContainer.centerYAnchor),
+        ])
+
+        container.addArrangedSubview(circleContainer)
     }
 
     func configure(day: String, isToday: Bool = false, isSelected: Bool = false) {
         label.text = day
-        label.textColor = isToday ? .systemRed : .label
-        contentView.backgroundColor = isSelected ? UIColor.systemGray5 : .clear
-        
-        
-        // ✅ 비어 있는 셀(= 날짜 없는 셀)이면 구분선 숨김
+        isTodayDate = isToday // ✅ 저장
         topSeparator.isHidden = day.isEmpty
+
+        if day.isEmpty {
+            circleView.backgroundColor = .clear
+            label.textColor = .clear
+        } else if isToday {
+            circleView.backgroundColor = .systemRed
+            label.textColor = .white
+        } else if isSelected {
+            circleView.backgroundColor = .systemGray
+            label.textColor = .white
+        } else {
+            circleView.backgroundColor = .clear
+            label.textColor = .label
+        }
+
+        contentView.backgroundColor = .clear
     }
 }

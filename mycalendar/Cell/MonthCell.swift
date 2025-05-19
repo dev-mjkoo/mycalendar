@@ -15,6 +15,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     
     var onDateSelected: ((Date) -> Void)?
     private var monthTitleLeadingConstraint: NSLayoutConstraint?
+    
+    private var selectedDate: Date?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -32,6 +34,8 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
     func configure(with date: Date, selected: Date?, events: [Event]) {
         self.monthDate = date
         self.events = events
+        self.selectedDate = selected
+
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -159,29 +163,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         }
     }
 
-    private func renderOverflowIndicator(for day: Date, count: Int, maxVisibleLines: Int) {
-        guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
-
-        let column = dayIndex % 7
-        let row = dayIndex / 7
-
-        let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
-        let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let blockY = y + CGFloat(maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin
-
-        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - (CalendarLayout.eventHorizontalInset * 2)
-        let height = CalendarLayout.eventBlockHeight
-
-        let overflowLabel = UILabel()
-        overflowLabel.text = " + \(count)개 "
-        overflowLabel.font = CalendarFont.overflowFont
-        overflowLabel.textColor = CalendarColor.overflowText
-        overflowLabel.backgroundColor = .clear
-        overflowLabel.clipsToBounds = false
-
-        overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
-        overlayView.addSubview(overflowLabel)
-    }
 
     private func renderEventBlock(_ block: EventBlock) {
         guard let startIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: block.startDate) }),
@@ -194,7 +175,7 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         let startX = CGFloat(startColumn) * (bounds.width / CalendarLayout.dayCellWidthDivider)
         let endX = CGFloat(endColumn + 1) * (bounds.width / CalendarLayout.dayCellWidthDivider)
 
-        let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+        let startY = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(startRow) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing) + CalendarLayout.eventBlockGap
         let blockY = startY + CGFloat(block.lineIndex) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin
 
         let width = endX - startX - (CalendarLayout.eventHorizontalInset * 2)
@@ -214,30 +195,6 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         overlayView.addSubview(eventView)
     }
 
-    private func renderOverflowIndicator(for day: Date, count: Int) {
-        guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
-
-        let column = dayIndex % 7
-        let row = dayIndex / 7
-
-        let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
-        let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let blockY = y + CGFloat(2) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin
-
-        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - (CalendarLayout.eventHorizontalInset * 2)
-        let height = CalendarLayout.eventBlockHeight
-
-        let overflowLabel = UILabel()
-        overflowLabel.text = " 외 \(count)개 "
-        overflowLabel.font = CalendarFont.overflowFont
-        overflowLabel.textColor = .white
-        overflowLabel.backgroundColor = CalendarColor.overflowBackground
-        overflowLabel.layer.cornerRadius = 4
-        overflowLabel.clipsToBounds = true
-
-        overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
-        overlayView.addSubview(overflowLabel)
-    }
 
     private func adjustedEndDate(for event: EKEvent) -> Date? {
         guard let _ = event.startDate, let endDate = event.endDate else { return nil }
@@ -250,6 +207,31 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
             return endDate
         }
     }
+
+    private func renderOverflowIndicator(for day: Date, count: Int, maxVisibleLines: Int) {
+        guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
+
+        let column = dayIndex % 7
+        let row = dayIndex / 7
+
+        let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+        let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
+        let blockY = y + CGFloat(maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin + CalendarLayout.eventBlockGap
+
+        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - (CalendarLayout.eventHorizontalInset * 2)
+        let height = CalendarLayout.eventBlockHeight
+
+        let overflowLabel = UILabel()
+        overflowLabel.text = " + \(count)개 "
+        overflowLabel.font = CalendarFont.overflowFont
+        overflowLabel.textColor = CalendarColor.overflowText
+        overflowLabel.backgroundColor = .clear
+        overflowLabel.clipsToBounds = false
+
+        overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
+        overlayView.addSubview(overflowLabel)
+    }
+
 
     private func sliceEventByWeek(event: EKEvent, from startDate: Date, to endDate: Date) -> [EventBlock] {
         var result: [EventBlock] = []
@@ -335,7 +317,11 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         } else {
             let isToday = calendar.isDateInToday(date)
             let day = calendar.component(.day, from: date)
-            cell.configure(day: "\(day)", isToday: isToday)
+            
+            let isSelected = selectedDate != nil && calendar.isDate(date, inSameDayAs: selectedDate!)
+
+            
+            cell.configure(day: "\(day)", isToday: isToday, isSelected: isSelected)
         }
 
         return cell
@@ -350,8 +336,15 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         HapticFeedbackManager.triggerNotification(.success)
 
         let date = days[indexPath.item]
-        if date != Date.distantPast {
-            onDateSelected?(date)
-        }
+        guard date != Date.distantPast else { return }
+
+        // ✅ 선택된 날짜 저장
+        selectedDate = date
+
+        // ✅ 선택 콜백 실행
+        onDateSelected?(date)
+
+        // ✅ 선택 시 전체 셀 다시 그리기 (선택 원 표시 위해)
+        collectionView.reloadData()
     }
 }

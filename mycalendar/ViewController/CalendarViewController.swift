@@ -79,7 +79,11 @@ class CalendarViewController: UIViewController, UICollectionViewDataSource, UICo
         let events = eventsByMonth[calendar.startOfMonth(for: monthDate)] ?? []
         cell.configure(with: monthDate, selected: selectedDate, events: events)
         cell.onDateSelected = { [weak self] date in
-            self?.onDateSelected?(date)
+            guard let self = self else { return }  // ✅ 옵셔널 해제
+
+            self.selectedDate = date              // ✅ 선택 날짜 저장
+            self.onDateSelected?(date)           // ✅ 외부에도 콜백 전달
+            self.collectionView.reloadData()     // ✅ 전체 리로드로 선택 표시 업데이트
         }
         return cell
     }

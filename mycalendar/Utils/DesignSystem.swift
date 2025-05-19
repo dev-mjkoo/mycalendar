@@ -13,7 +13,7 @@ struct CalendarLayout {
     
     
     /// 요일 셀 하나의 높이 (정사각형 기준) -> 일자별 셀높이
-    static let dayCellHeight: CGFloat = 90
+    static let dayCellHeight: CGFloat = 120
 
     /// 요일 셀 하나의 너비 계산용 분모 (보통 7일)
     static let dayCellWidthDivider: CGFloat = 7
@@ -44,6 +44,8 @@ struct CalendarLayout {
 
     /// 이벤트 바 Y축 추가 마진
     static let eventBlockYMargin: CGFloat = 2
+    
+    static let eventBlockGap: CGFloat = 16
     
     
 }
