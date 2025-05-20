@@ -41,7 +41,7 @@ struct CustomHeaderView: View {
             ForEach(["일", "월", "화", "수", "목", "금", "토"], id: \.self) { day in
                 Text(day)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(day == "일" ? .red : day == "토" ? .blue : .primary)
+                    .foregroundColor(day == "일" || day == "토" ? Color(UIColor.systemGray) : .primary)
                     .frame(maxWidth: .infinity)
             }
         }

@@ -35,10 +35,10 @@ struct CalendarLayout {
     static let maxVisibleLines = 2
 
     /// 이벤트 바 한 줄의 세로 간격 (lineIndex * 이 값)
-    static let eventLineHeight: CGFloat = 16
+    static let eventLineHeight: CGFloat = 19
 
     /// 이벤트 바의 높이
-    static let eventBlockHeight: CGFloat = 14
+    static let eventBlockHeight: CGFloat = 16
 
     /// 이벤트 바 X축 여백 (좌우 한쪽)
     static let eventHorizontalInset: CGFloat = 2
@@ -59,7 +59,7 @@ struct CalendarFont {
     static let eventFont = UIFont.systemFont(ofSize: 11, weight: .semibold)
 
     /// overflow indicator 텍스트
-    static let overflowFont = UIFont.systemFont(ofSize: 9, weight: .medium)
+    static let overflowFont = UIFont.systemFont(ofSize: 10, weight: .medium)
 }
 
 struct CalendarColor {
@@ -69,16 +69,34 @@ struct CalendarColor {
         return UIColor { trait in
             return trait.userInterfaceStyle == .dark
                 ? baseColor.lighten(by: 30) // 다크모드에서는 밝게
-                : baseColor.darken(by: 40)  // 라이트모드에서는 더 진하게
+                : baseColor.darken(by: 50)  // 라이트모드에서는 더 진하게
         }
     }
 
     /// 이벤트 배경색 (투명도 + 다크/라이트 모드 대응)
     static func eventBackgroundColor(from color: CGColor) -> UIColor {
-        let baseColor = UIColor(cgColor: color)
+        let base = UIColor(cgColor: color)
+
+        let adjustedBase: UIColor = {
+            var white: CGFloat = 0
+            var alpha: CGFloat = 0
+
+            if base.getWhite(&white, alpha: &alpha) {
+                if white < 0.05 {
+                    // 너무 어두움 → 중간 회색
+                    return UIColor.systemGray3
+                } else if white > 0.95 {
+                    // 너무 밝음 → 살짝 어두운 회색
+                    return UIColor.systemGray
+                }
+            }
+
+            return base
+        }()
+
         return UIColor { trait in
-            let alpha: CGFloat = trait.userInterfaceStyle == .dark ? 0.25 : 0.15
-            return baseColor.withAlphaComponent(alpha)
+            let alpha: CGFloat = trait.userInterfaceStyle == .dark ? 0.4 : 0.15
+            return adjustedBase.withAlphaComponent(alpha)
         }
     }
 

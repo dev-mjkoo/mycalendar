@@ -121,9 +121,9 @@ class DayCell: UICollectionViewCell {
             // ✅ 요일 컬러 처리
             switch index {
             case 0:  // 일요일
-                label.textColor = .systemRed
+                label.textColor = .systemGray
             case 6:  // 토요일
-                label.textColor = .systemBlue
+                label.textColor = .systemGray
             default:
                 label.textColor = .label
             }
