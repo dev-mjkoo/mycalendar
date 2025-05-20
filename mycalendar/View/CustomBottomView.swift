@@ -27,8 +27,13 @@ struct CustomBottomView: View {
             }) {
                 Text("오늘")
                     .font(.headline)
-                    .foregroundColor(.red) // ← 컬러 설정 여기!
-                    
+                    .foregroundColor(.red)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.red, lineWidth: 1)
+                    )
             }
             
             
