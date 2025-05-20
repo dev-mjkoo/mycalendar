@@ -59,7 +59,7 @@ struct CalendarFont {
     static let eventFont = UIFont.systemFont(ofSize: 11, weight: .semibold)
 
     /// overflow indicator 텍스트
-    static let overflowFont = UIFont.systemFont(ofSize: 11, weight: .medium)
+    static let overflowFont = UIFont.systemFont(ofSize: 9, weight: .medium)
 }
 
 struct CalendarColor {
