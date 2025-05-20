@@ -84,7 +84,7 @@ class DayCell: UICollectionViewCell {
         // ✅ 텍스트 라벨
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
-        label.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        label.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
         
         // ✅ 뷰 계층 구성
         let circleContainer = UIView()

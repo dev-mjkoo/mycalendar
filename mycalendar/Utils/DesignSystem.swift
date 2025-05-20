@@ -63,39 +63,68 @@ struct CalendarFont {
 }
 
 struct CalendarColor {
-    /// 이벤트 텍스트 색상 (원본 색상 그대로)
+    /// 이벤트 텍스트 색상 (다크/라이트 모드 대응)
     static func eventTextColor(from color: CGColor) -> UIColor {
-        return         UIColor(cgColor: color).darken(by: 20) // 진하게
-
+        let baseColor = UIColor(cgColor: color)
+        return UIColor { trait in
+            return trait.userInterfaceStyle == .dark
+                ? baseColor.lighten(by: 30) // 다크모드에서는 밝게
+                : baseColor.darken(by: 40)  // 라이트모드에서는 더 진하게
+        }
     }
 
-    /// 이벤트 바 배경 (투명도 있는 색)
+    /// 이벤트 배경색 (투명도 + 다크/라이트 모드 대응)
     static func eventBackgroundColor(from color: CGColor) -> UIColor {
-        return UIColor(cgColor: color).withAlphaComponent(0.3)
+        let baseColor = UIColor(cgColor: color)
+        return UIColor { trait in
+            let alpha: CGFloat = trait.userInterfaceStyle == .dark ? 0.25 : 0.15
+            return baseColor.withAlphaComponent(alpha)
+        }
     }
 
-    /// overflow indicator 텍스트 색상 (시스템 컬러)
+    /// overflow indicator 텍스트 색상 (시스템 컬러 그대로)
     static let overflowText = UIColor.secondaryLabel
 
-    /// overflow indicator 배경 색상 (진한 회색)
-    static let overflowBackground = UIColor.gray.withAlphaComponent(0.8)
+    /// overflow indicator 배경 색상 (다크/라이트에 따라 회색 계열)
+    static let overflowBackground: UIColor = {
+        return UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(white: 0.3, alpha: 0.8)  // 어두운 회색
+                : UIColor(white: 0.7, alpha: 0.6)  // 밝은 회색
+        }
+    }()
 }
 
 extension UIColor {
     func lighten(by percentage: CGFloat) -> UIColor {
-        return adjust(by: abs(percentage))
+        return adjustBrightness(by: abs(percentage))
     }
 
     func darken(by percentage: CGFloat) -> UIColor {
-        return adjust(by: -abs(percentage))
+        return adjustBrightness(by: -abs(percentage))
     }
 
-    private func adjust(by percentage: CGFloat) -> UIColor {
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        guard getRed(&r, green: &g, blue: &b, alpha: &a) else { return self }
-        return UIColor(red: min(r + percentage / 100, 1.0),
-                       green: min(g + percentage / 100, 1.0),
-                       blue: min(b + percentage / 100, 1.0),
-                       alpha: a)
+    private func adjustBrightness(by percentage: CGFloat) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+
+        guard getHue(&h, saturation: &s, brightness: &b, alpha: &a) else {
+            // fallback to RGB
+            var r: CGFloat = 0, g: CGFloat = 0, bl: CGFloat = 0
+            guard getRed(&r, green: &g, blue: &bl, alpha: &a) else { return self }
+
+            return UIColor(
+                red: max(min(r + percentage / 100, 1.0), 0),
+                green: max(min(g + percentage / 100, 1.0), 0),
+                blue: max(min(bl + percentage / 100, 1.0), 0),
+                alpha: a
+            )
+        }
+
+        return UIColor(
+            hue: h,
+            saturation: s,
+            brightness: max(min(b + percentage / 100, 1.0), 0),
+            alpha: a
+        )
     }
 }

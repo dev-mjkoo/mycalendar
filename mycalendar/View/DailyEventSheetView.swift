@@ -28,7 +28,9 @@ struct DailyEventSheetView: View {
                         .font(.system(size: 20, weight: .semibold))
                 }
             }
-            .padding()
+            .padding(EdgeInsets(top: 24, leading: 16, bottom: 0, trailing: 16))
+            
+            Divider()
             if viewModel.events.isEmpty {
                 EmptyView()
             } else {

@@ -89,7 +89,7 @@ struct MainView: View {
                 
             }
             .onChange(of: currentMonthText, { oldValue, newValue in
-                HapticFeedbackManager.trigger()
+//                HapticFeedbackManager.trigger()
             })
             // ✅ scenePhase가 active 될 때 권한만 체크
             .onChange(of: scenePhase) { newValue in
@@ -150,7 +150,7 @@ struct MainView: View {
             // todo 이것도 local화 하기
             ForEach(["일", "월", "화", "수", "목", "금", "토"], id: \.self) { day in
                 Text(day)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(day == "일" ? .red : day == "토" ? .blue : .primary)
                     .frame(maxWidth: .infinity)
             }
