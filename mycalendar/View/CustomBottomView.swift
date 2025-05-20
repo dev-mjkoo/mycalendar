@@ -15,8 +15,9 @@ struct CustomBottomView: View {
             Button(action: {
                 log("✅ 하단 버튼 클릭")
             }) {
-                Text("캘린더")
-                    .font(.headline)
+                Image(systemName: "calendar")
+                        .imageScale(.large)
+                        .foregroundColor(.red)
             }
             Spacer()
             
@@ -26,6 +27,8 @@ struct CustomBottomView: View {
             }) {
                 Text("오늘")
                     .font(.headline)
+                    .foregroundColor(.red) // ← 컬러 설정 여기!
+                    
             }
             
             
@@ -33,8 +36,9 @@ struct CustomBottomView: View {
             Button(action: {
                 log("✅ 하단 버튼 클릭")
             }) {
-                Text("추가")
-                    .font(.headline)
+                Image(systemName: "plus")
+                    .imageScale(.large)
+                    .foregroundColor(.red)
             }
         }
         .padding()

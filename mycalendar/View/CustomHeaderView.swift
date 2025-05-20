@@ -9,20 +9,22 @@ import SwiftUI
 struct CustomHeaderView: View {
     @Binding var currentMonthText: String
     var onSettingsTap: () -> Void
-
+    
     var body: some View {
         HStack {
             Text(currentMonthText)
                 .font(.system(size: 24, weight: .bold))
-
-
+            
+            
             Spacer()
-
+            
             Button {
                 onSettingsTap()
             } label: {
-                Image(systemName: "gear")
+                Image(systemName: "slider.horizontal.3")
                     .imageScale(.large)
+                    .foregroundColor(.red)
+                
             }
         }
         .padding(.horizontal)

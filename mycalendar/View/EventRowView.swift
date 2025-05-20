@@ -18,6 +18,7 @@ struct EventRowView: View {
                 .fill(color)
                 .frame(width: 4)
                 .cornerRadius(2)
+                .padding(.vertical, 6) // ← 요기!
 
             // ✅ 텍스트 정보 (타이틀 + 주소)
             VStack(alignment: .leading, spacing: 2) {

@@ -27,6 +27,8 @@ struct DailyEventSheetView: View {
                         .foregroundColor(.gray)
                         .font(.system(size: 20, weight: .semibold))
                 }
+                
+                Spacer()
             }
             .padding(EdgeInsets(top: 24, leading: 16, bottom: 0, trailing: 16))
             
