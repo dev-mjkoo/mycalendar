@@ -6,18 +6,21 @@
 //
 
 import SwiftUI
+import EventKit
 
 struct CustomBottomView: View {
     var onTodayTap: () -> Void
-
+    @State private var showEventEditor = false
+    @State private var showPermissionAlert = false
+    
     var body: some View {
         HStack {
             Button(action: {
                 log("✅ 하단 버튼 클릭")
             }) {
                 Image(systemName: "calendar")
-                        .imageScale(.large)
-                        .foregroundColor(.red)
+                    .imageScale(.large)
+                    .foregroundColor(.red)
             }
             Spacer()
             
@@ -36,10 +39,9 @@ struct CustomBottomView: View {
                     )
             }
             
-            
             Spacer()
             Button(action: {
-                log("✅ 하단 버튼 클릭")
+                checkCalendarPermission()
             }) {
                 Image(systemName: "plus")
                     .imageScale(.large)
@@ -47,11 +49,47 @@ struct CustomBottomView: View {
             }
         }
         .padding()
-        .frame(height: 50) // ✅ 고정 높이
+        .frame(height: 50)
         .background(Color(UIColor.secondarySystemBackground))
+        .sheet(isPresented: $showEventEditor) {
+            EventEditView()
+        }
+        .alert(isPresented: $showPermissionAlert) {
+            Alert(
+                title: Text("캘린더 권한 필요"),
+                message: Text("캘린더에 이벤트를 추가하려면 권한이 필요합니다. 설정에서 권한을 변경해주세요."),
+                primaryButton: .default(Text("설정 열기"), action: {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }),
+                secondaryButton: .cancel(Text("취소"))
+            )
+        }
+    }
+    
+    private func checkCalendarPermission() {
+        let status = EKEventStore.authorizationStatus(for: .event)
         
-        //        .cornerRadius(12)
-//        .padding(.horizontal, 16)
-//        .shadow(radius: 4)
+        switch status {
+        case .fullAccess:
+            showEventEditor = true
+        case .writeOnly:
+            showEventEditor = true
+        case .notDetermined:
+            EKEventStore().requestFullAccessToEvents { granted, _ in
+                DispatchQueue.main.async {
+                    if granted {
+                        showEventEditor = true
+                    } else {
+                        showPermissionAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showPermissionAlert = true
+        @unknown default:
+            showPermissionAlert = true
+        }
     }
 }
