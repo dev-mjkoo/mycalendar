@@ -155,10 +155,10 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
                 if isSafeToShowDirectly {
                     renderEventBlock(block)
                 } else {
-                    renderOverflowIndicator(for: day, count: 1, maxVisibleLines: CalendarLayout.maxVisibleLines)
+                    renderOverflowDots(for: day, eventBlocks: overflows)
                 }
             } else if overflows.count > 1 {
-                renderOverflowIndicator(for: day, count: overflows.count, maxVisibleLines: CalendarLayout.maxVisibleLines)
+                renderOverflowDots(for: day, eventBlocks: overflows)
             }
         }
     }
@@ -208,29 +208,34 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         }
     }
 
-    private func renderOverflowIndicator(for day: Date, count: Int, maxVisibleLines: Int) {
+    private func renderOverflowDots(for day: Date, eventBlocks: [EventBlock]) {
         guard let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: day) }) else { return }
 
         let column = dayIndex % 7
         let row = dayIndex / 7
 
-        let x = CGFloat(column) * (bounds.width / CalendarLayout.dayCellWidthDivider)
+        let cellWidth = bounds.width / CalendarLayout.dayCellWidthDivider
+        let x = CGFloat(column) * cellWidth
         let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let blockY = y + CGFloat(maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin + CalendarLayout.eventBlockGap
+        let dotY = y + CGFloat(CalendarLayout.maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin + CalendarLayout.eventBlockGap
 
-        let width = (bounds.width / CalendarLayout.dayCellWidthDivider) - (CalendarLayout.eventHorizontalInset * 2)
-        let height = CalendarLayout.eventBlockHeight
+        let dotDiameter: CGFloat = 6.0
+        let spacing: CGFloat = 4.0
 
-        let overflowLabel = UILabel()
-        overflowLabel.text = " + \(count)개 "
-        overflowLabel.font = CalendarFont.overflowFont
-        overflowLabel.textColor = CalendarColor.overflowText
-        overflowLabel.backgroundColor = .clear
-        overflowLabel.clipsToBounds = false
-        overflowLabel.textAlignment = .center
+        // Only one dot per unique calendar
+        let uniqueCalendars = Array(Set(eventBlocks.compactMap { $0.event.calendar }))
+            .sorted { $0.title < $1.title } // 일단 소팅 이걸로 (todo)
+        let maxDots = min(uniqueCalendars.count, 5)
+        let totalWidth = CGFloat(maxDots) * dotDiameter + CGFloat(maxDots - 1) * spacing
+        let startX = x + (cellWidth - totalWidth) / 2.0
 
-        overflowLabel.frame = CGRect(x: x + CalendarLayout.eventHorizontalInset, y: blockY, width: width, height: height)
-        overlayView.addSubview(overflowLabel)
+        for (index, calendar) in uniqueCalendars.prefix(maxDots).enumerated() {
+            let dotView = UIView()
+            dotView.frame = CGRect(x: startX + CGFloat(index) * (dotDiameter + spacing), y: dotY, width: dotDiameter, height: dotDiameter)
+            dotView.layer.cornerRadius = dotDiameter / 2
+            dotView.backgroundColor = UIColor(cgColor: calendar.cgColor ?? UIColor.systemGray.cgColor)
+            overlayView.addSubview(dotView)
+        }
     }
 
 
