@@ -242,13 +242,14 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
                 height: barHeight
             ))
             barView.layer.cornerRadius = 1.0
-            barView.backgroundColor = UIColor(cgColor: calendar.cgColor ?? UIColor.systemGray.cgColor).withAlphaComponent(0.9)
+//            barView.backgroundColor = UIColor(cgColor: calendar.cgColor ?? UIColor.systemGray.cgColor).withAlphaComponent(0.9)
+            barView.backgroundColor = CalendarColor.eventBackgroundColor(from: calendar.cgColor)
 
             // 숫자 라벨
             let label = UILabel(frame: barView.bounds)
             label.text = "\(count)"
             label.font = UIFont.systemFont(ofSize: 10)
-            label.textColor = .white
+            label.textColor = CalendarColor.eventTextColor(from: calendar.cgColor)
             label.textAlignment = .center
             label.adjustsFontSizeToFitWidth = true
 
