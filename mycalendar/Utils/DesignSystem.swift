@@ -63,52 +63,44 @@ struct CalendarFont {
 }
 
 struct CalendarColor {
-    /// 이벤트 텍스트 색상 (다크/라이트 모드 대응)
+    /// 이벤트 텍스트 색상 (기본 컬러 기반)
     static func eventTextColor(from color: CGColor) -> UIColor {
         let baseColor = UIColor(cgColor: color)
         return UIColor { trait in
-            return trait.userInterfaceStyle == .dark
-                ? baseColor.lighten(by: 30) // 다크모드에서는 밝게
-                : baseColor.darken(by: 50)  // 라이트모드에서는 더 진하게
+            switch trait.userInterfaceStyle {
+            case .dark:
+                // 어두운 배경에선 글씨를 살짝 더 밝게
+                return baseColor.lighten(by: 20).withAlphaComponent(0.95)
+            default:
+                // 밝은 배경에선 글씨를 살짝 더 어둡게
+                return baseColor.darken(by: 25).withAlphaComponent(0.95)
+            }
         }
     }
 
-    /// 이벤트 배경색 (투명도 + 다크/라이트 모드 대응)
+    /// 이벤트 배경색 (원본 색상 유지 + 밝기 조절 + 알파)
     static func eventBackgroundColor(from color: CGColor) -> UIColor {
-        let base = UIColor(cgColor: color)
-
-        let adjustedBase: UIColor = {
-            var white: CGFloat = 0
-            var alpha: CGFloat = 0
-
-            if base.getWhite(&white, alpha: &alpha) {
-                if white < 0.05 {
-                    // 너무 어두움 → 중간 회색
-                    return UIColor.systemGray3
-                } else if white > 0.95 {
-                    // 너무 밝음 → 살짝 어두운 회색
-                    return UIColor.systemGray
-                }
-            }
-
-            return base
-        }()
+        let baseColor = UIColor(cgColor: color)
 
         return UIColor { trait in
-            let alpha: CGFloat = trait.userInterfaceStyle == .dark ? 0.4 : 0.15
-            return adjustedBase.withAlphaComponent(alpha)
+            switch trait.userInterfaceStyle {
+            case .dark:
+                return baseColor.darken(by: 10).withAlphaComponent(0.4)
+            default:
+                return baseColor.lighten(by: 15).withAlphaComponent(0.2)
+            }
         }
     }
 
-    /// overflow indicator 텍스트 색상 (시스템 컬러 그대로)
+    /// overflow 텍스트 색상
     static let overflowText = UIColor.secondaryLabel
 
-    /// overflow indicator 배경 색상 (다크/라이트에 따라 회색 계열)
+    /// overflow 배경색 (살짝 명시적인 회색 계열)
     static let overflowBackground: UIColor = {
-        return UIColor { trait in
+        UIColor { trait in
             trait.userInterfaceStyle == .dark
-                ? UIColor(white: 0.3, alpha: 0.8)  // 어두운 회색
-                : UIColor(white: 0.7, alpha: 0.6)  // 밝은 회색
+                ? UIColor(white: 0.2, alpha: 0.6)
+                : UIColor(white: 0.85, alpha: 0.4)
         }
     }()
 }

@@ -217,27 +217,46 @@ class MonthCell: UICollectionViewCell, UICollectionViewDataSource, UICollectionV
         let cellWidth = bounds.width / CalendarLayout.dayCellWidthDivider
         let x = CGFloat(column) * cellWidth
         let y = CalendarLayout.monthTitleHeight + CalendarLayout.verticalPadding + CGFloat(row) * (CalendarLayout.dayCellHeight + CalendarLayout.rowSpacing)
-        let dotY = y + CGFloat(CalendarLayout.maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin + CalendarLayout.eventBlockGap
+        let barY = y + CGFloat(CalendarLayout.maxVisibleLines) * CalendarLayout.eventLineHeight + CalendarLayout.eventBlockYMargin + CalendarLayout.eventBlockGap
 
-        let dotDiameter: CGFloat = 6.0
-        let spacing: CGFloat = 4.0
+        // 막대 설정
+        let barWidth: CGFloat = 8.0
+        let barHeight: CGFloat = CalendarLayout.eventBlockHeight - 2
+        let spacing: CGFloat = 2.0
 
-        // Only one dot per unique calendar
-        let uniqueCalendars = Array(Set(eventBlocks.compactMap { $0.event.calendar }))
-            .sorted { $0.title < $1.title } // 일단 소팅 이걸로 (todo)
-        let maxDots = min(uniqueCalendars.count, 5)
-        let totalWidth = CGFloat(maxDots) * dotDiameter + CGFloat(maxDots - 1) * spacing
+        // 고유 캘린더 추출 및 정렬
+        let uniqueCalendars = Array(Set(eventBlocks.compactMap { $0.event.calendar })).sorted { $0.title < $1.title }
+        let maxBars = min(uniqueCalendars.count, 5)
+        let totalWidth = CGFloat(maxBars) * barWidth + CGFloat(maxBars - 1) * spacing
         let startX = x + (cellWidth - totalWidth) / 2.0
 
-        for (index, calendar) in uniqueCalendars.prefix(maxDots).enumerated() {
-            let dotView = UIView()
-            dotView.frame = CGRect(x: startX + CGFloat(index) * (dotDiameter + spacing), y: dotY, width: dotDiameter, height: dotDiameter)
-            dotView.layer.cornerRadius = dotDiameter / 2
-            dotView.backgroundColor = UIColor(cgColor: calendar.cgColor ?? UIColor.systemGray.cgColor)
-            overlayView.addSubview(dotView)
+        for (index, calendar) in uniqueCalendars.prefix(maxBars).enumerated() {
+            // 해당 캘린더의 이벤트 수 계산
+            let count = eventBlocks.filter { $0.event.calendar == calendar }.count
+
+            // 막대 뷰
+            let barView = UIView(frame: CGRect(
+                x: startX + CGFloat(index) * (barWidth + spacing),
+                y: barY,
+                width: barWidth,
+                height: barHeight
+            ))
+            barView.layer.cornerRadius = 1.0
+            barView.backgroundColor = UIColor(cgColor: calendar.cgColor ?? UIColor.systemGray.cgColor).withAlphaComponent(0.9)
+
+            // 숫자 라벨
+            let label = UILabel(frame: barView.bounds)
+            label.text = "\(count)"
+            label.font = UIFont.systemFont(ofSize: 10)
+            label.textColor = .white
+            label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+
+            barView.addSubview(label)
+            overlayView.addSubview(barView)
         }
     }
-
+    
 
     private func sliceEventByWeek(event: EKEvent, from startDate: Date, to endDate: Date) -> [EventBlock] {
         var result: [EventBlock] = []

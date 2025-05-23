@@ -48,7 +48,7 @@ class DayCell: UICollectionViewCell {
             topSeparator.topAnchor.constraint(equalTo: contentView.topAnchor, constant: CalendarLayout.eventBlockHeight + 4),
             topSeparator.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             topSeparator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            topSeparator.heightAnchor.constraint(equalToConstant: 0.5)
+            topSeparator.heightAnchor.constraint(equalToConstant: 1)
         ])
     }
     
