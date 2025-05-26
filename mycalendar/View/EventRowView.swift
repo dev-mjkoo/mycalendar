@@ -1,30 +1,21 @@
-//
-//  EventRowView.swift
-//  mycalendar
-//
-//  Created by 구민준 on 5/19/25.
-//
 import SwiftUI
 import EventKit
 
 struct EventRowView: View {
     let event: Event
     let color: Color
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         HStack(spacing: 8) {
-            // ✅ 색상 바
-            Rectangle()
-                .fill(color)
-                .frame(width: 4)
-                .cornerRadius(2)
-                .padding(.vertical, 6) // ← 요기!
-
-            // ✅ 텍스트 정보 (타이틀 + 주소)
+            // ✅ 메인 콘텐츠
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.ekEvent.title ?? "(제목 없음)")
                     .font(.body)
                     .fontWeight(.semibold)
+                    .foregroundColor(
+                        colorScheme == .dark ? color : .primary // 다크모드면 캘린더색, 아니면 기본색
+                    )
                     .lineLimit(1)
 
                 if let location = event.ekEvent.location, !location.isEmpty {
@@ -38,7 +29,6 @@ struct EventRowView: View {
                             .lineLimit(1)
                     }
                 } else {
-                    // 공간 유지 (정렬 깨지지 않게)
                     Text(" ")
                         .font(.subheadline)
                         .hidden()
@@ -47,7 +37,6 @@ struct EventRowView: View {
 
             Spacer()
 
-            // ✅ 오른쪽: 시간 or 날짜
             VStack(alignment: .trailing, spacing: 2) {
                 if isAllDayOrMultiDay {
                     Text(event.ekEvent.startDate.localeSmartFormattedDateYYYYMMDD)
@@ -64,8 +53,19 @@ struct EventRowView: View {
                 }
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 0)
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(backgroundColor)
+        )
+    }
+
+    var backgroundColor: Color {
+        if colorScheme == .dark {
+            return Color(UIColor.systemGray5) // 다크모드용 밝은 회색
+        } else {
+            return color.opacity(0.15) // 라이트 모드: 일정별 색상 연하게
+        }
     }
 
     var isAllDayOrMultiDay: Bool {
@@ -74,7 +74,6 @@ struct EventRowView: View {
          !Calendar.current.isDate(event.ekEvent.startDate!, inSameDayAs: event.ekEvent.endDate!))
     }
 
-
     func formattedTime(_ date: Date?) -> String {
         guard let date = date else { return "" }
         let formatter = DateFormatter()
@@ -82,4 +81,3 @@ struct EventRowView: View {
         return formatter.string(from: date)
     }
 }
-

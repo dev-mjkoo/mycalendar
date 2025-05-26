@@ -26,22 +26,37 @@ struct EventEditView: UIViewControllerRepresentable {
         vc.eventStore = eventStore
         vc.event = event
         vc.editViewDelegate = context.coordinator
+        vc.presentationController?.delegate = context.coordinator
+
+        vc.modalPresentationStyle = .automatic  // 또는 .pageSheet
+
         return vc
     }
 
     func updateUIViewController(_ uiViewController: EKEventEditViewController, context: Context) {}
 
-    class Coordinator: NSObject, EKEventEditViewDelegate {
-        let parent: EventEditView
+}
 
-        init(parent: EventEditView) {
-            self.parent = parent
-        }
+class Coordinator: NSObject, EKEventEditViewDelegate, UIAdaptivePresentationControllerDelegate {
+    let parent: EventEditView
 
-        func eventEditViewController(_ controller: EKEventEditViewController, didCompleteWith action: EKEventEditViewAction) {
-            controller.dismiss(animated: true) {
-                self.parent.presentationMode.wrappedValue.dismiss()
-            }
+    init(parent: EventEditView) {
+        self.parent = parent
+    }
+
+    func eventEditViewController(_ controller: EKEventEditViewController, didCompleteWith action: EKEventEditViewAction) {
+        controller.dismiss(animated: true) {
+            self.parent.presentationMode.wrappedValue.dismiss()
         }
+    }
+
+    // ✅ 스와이프 dismiss 허용
+    func presentationControllerShouldDismiss(_ presentationController: UIPresentationController) -> Bool {
+        true
+    }
+
+    // ✅ 실제 dismiss가 일어났을 때 SwiftUI 쪽도 닫기
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        self.parent.presentationMode.wrappedValue.dismiss()
     }
 }

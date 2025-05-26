@@ -44,6 +44,8 @@ struct DailyEventSheetView: View {
                                 color: Color(event.ekEvent.calendar.cgColor ?? UIColor.systemGray.cgColor)  // fallback 필수!
                             )
                             .listRowBackground(Color.clear)  // ✨ 이 한 줄이 핵심!
+                            .listRowSeparator(.hidden)  // ← 요 줄 추가!
+
                             
                         }
                     }
@@ -51,6 +53,7 @@ struct DailyEventSheetView: View {
                     .scrollContentBackground(.hidden)  // iOS 16+
                     
                     .background(Color.clear) // 리스트 자체도 투명하게!
+
                 }
                 .modifier(
                     FloatingPanelScrollResettableModifier(dateID: viewModel.date, proxy: proxy)
