@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import FloatingPanel
+import EventKit
 
 struct DailyEventSheetView: View {
     let proxy: FloatingPanelProxy
@@ -15,6 +16,8 @@ struct DailyEventSheetView: View {
     
     @State private var contentHeight: CGFloat = 0
     @State private var availableHeight: CGFloat = 0
+    @State private var selectedEvent: EKEvent?
+    @State private var showEventDetail = false
     
     var body: some View {
         VStack {
@@ -46,6 +49,10 @@ struct DailyEventSheetView: View {
                             .listRowBackground(Color.clear)  // ✨ 이 한 줄이 핵심!
                             .listRowSeparator(.hidden)  // ← 요 줄 추가!
 
+                            .onTapGesture {
+                                self.selectedEvent = event.ekEvent
+                                self.showEventDetail = true
+                            }
                             
                         }
                     }
@@ -64,6 +71,11 @@ struct DailyEventSheetView: View {
             Spacer(minLength: 0)
         }
         .presentationDetents([.medium, .large])
+        .sheet(isPresented: $showEventDetail) {
+            if let event = selectedEvent {
+                EKEventViewControllerRepresentable(event: event)
+            }
+        }
     }
 }
 
