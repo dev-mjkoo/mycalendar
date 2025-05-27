@@ -7,65 +7,43 @@ struct EventRowView: View {
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        HStack(spacing: 8) {
-            // ✅ 메인 콘텐츠
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.ekEvent.title ?? "(제목 없음)")
-                    .font(.body)
-                    .fontWeight(.semibold)
-                    .foregroundColor(
-                        colorScheme == .dark ? color : .primary // 다크모드면 캘린더색, 아니면 기본색
-                    )
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: 6) {
+            // ✅ 이벤트 타이틀
+            Text(event.ekEvent.title ?? "(제목 없음)")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(color) // 캘린더 색
 
-                if let location = event.ekEvent.location, !location.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "location.circle")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Text(location)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                } else {
-                    Text(" ")
-                        .font(.subheadline)
-                        .hidden()
+            // ✅ 위치 (있을 경우에만)
+            if let location = event.ekEvent.location, !location.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.circle")
+                        .font(.footnote)
+                    Text(location)
                 }
+                .font(.footnote)
+                .foregroundColor(.gray)
             }
 
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                if isAllDayOrMultiDay {
-                    Text(event.ekEvent.startDate.localeSmartFormattedDateYYYYMMDD)
-                        .font(.subheadline)
-                    Text(event.ekEvent.endDate.localeSmartFormattedDateYYYYMMDD)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text(formattedTime(event.ekEvent.startDate))
-                        .font(.subheadline)
-                    Text(formattedTime(event.ekEvent.endDate))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
+            // ✅ 시작 - 종료 시간 (날짜 또는 시간)
+            Text(dateRangeText)
+                .font(.subheadline)
+                .foregroundColor(colorScheme == .dark ? .white : .primary)
         }
-        .padding(8)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(color, lineWidth: 1.5) // 외곽선 강조
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 10)
                 .fill(backgroundColor)
         )
     }
 
     var backgroundColor: Color {
-        if colorScheme == .dark {
-            return Color(UIColor.systemGray5) // 다크모드용 밝은 회색
-        } else {
-            return color.opacity(0.15) // 라이트 모드: 일정별 색상 연하게
-        }
+        colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white
     }
 
     var isAllDayOrMultiDay: Bool {
@@ -74,8 +52,19 @@ struct EventRowView: View {
          !Calendar.current.isDate(event.ekEvent.startDate!, inSameDayAs: event.ekEvent.endDate!))
     }
 
-    func formattedTime(_ date: Date?) -> String {
-        guard let date = date else { return "" }
+    var dateRangeText: String {
+        let start = event.ekEvent.startDate
+        let end = event.ekEvent.endDate
+        guard let start = start, let end = end else { return "" }
+
+        if isAllDayOrMultiDay {
+            return "\(start.localeSmartFormattedDateYYYYMMDD) - \(end.localeSmartFormattedDateYYYYMMDD)"
+        } else {
+            return "\(formattedTime(start)) - \(formattedTime(end))"
+        }
+    }
+
+    func formattedTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
